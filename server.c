@@ -72,10 +72,10 @@ int main()
             read(ny_sd, buffer, sizeof(buffer));
 
             // Printer ut et 200 svar
-            printf("HTTP/1.1 200 OK\n");
-            printf("Content-Type: text/plain\n");
-            printf("\n");
-            printf("Hallo klient!\n");
+            //printf("HTTP/1.1 200 OK\n");
+            //printf("Content-Type: text/plain\n");
+            //printf("\n");
+            //printf("Hallo klient!\n");
 
             // Vi kan bruke printf men foreløpig bruker vi en loop
             // printf("%s\n", buffer);
@@ -92,14 +92,21 @@ int main()
             char filePath[1024] = ".";
             strcat(filePath, fileName); // Adds '.' to file path to create relative path
 
-            int file = open(fileName, O_RDONLY); // Attempts to open file
-            if (file == -1) {
-                perror("Error while opening file %s", filePath);
+            int file = open(filePath, O_RDONLY); // Attempts to open file
+            if (file < 0) {
+                fprintf(stderr, "Error while opening file %s", filePath);
+                perror("Error");
                 //TODO: Send 404 response
+                printf("HTTP/1.1 404 Not Found\n");
+                printf("Content-Type: text/plain\n");
+                printf("\n");
+                printf("Du har kommet til et sted som ikke eksisterer. Uuups.\n");
+                fflush(stderr);
             }
 
             int bytesRead;
-            while (bytesRead = read(file, buffer, sizeof(buffer)) > 0) {
+            while ((bytesRead = read(file, buffer, sizeof(buffer))) > 0) {
+                //fprintf(stderr, "Bytes read:%d", bytesRead);
                 write(ny_sd, buffer, bytesRead); // Writes bytes to socket
             }
             if (bytesRead < 0) {
@@ -120,7 +127,6 @@ int main()
         else
         {
             close(ny_sd);
-            wait();
         }
     }
     return 0;
