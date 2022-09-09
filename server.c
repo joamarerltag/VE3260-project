@@ -6,27 +6,6 @@
 #define LOKAL_PORT 55556
 #define BAK_LOGG 10 // Størrelse på for kø ventende forespørsler
 
-// void readFile(int fd)
-// {
-//     char buffer[10];
-//     int bytes_read;
-//     int k = 0;
-//     do
-//     {
-//         char t = 0;
-//         bytes_read = read(fd, &t, 1);
-//         buffer[k++] = t;
-//         printf("%c", t);
-//         if (t == '\n' && t == '\0')
-//         {
-//             printf("%d", atoi(buffer));
-//             for (int i = 0; i < 10; i++)
-//                 buffer[i] = '\0';
-//             k = 0;
-//         }
-//     } while (bytes_read != 0);
-// }
-
 int main()
 {
 
