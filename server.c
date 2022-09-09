@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#define LOKAL_PORT 55556
+#define LOKAL_PORT 80
 #define BAK_LOGG 10 // Størrelse på for kø ventende forespørsler
 
 bool sendFileContent(int ny_sd, char* filePath, char* buffer);
@@ -54,6 +54,9 @@ int main()
         fprintf(stderr, "Process %d is bound to port %d.\n", getpid(), LOKAL_PORT);
     else
         exit(1);
+
+    setuid(1004);
+    setgid(1005);
 
     // Venter på forespørsel om forbindelse
     listen(sd, BAK_LOGG);
