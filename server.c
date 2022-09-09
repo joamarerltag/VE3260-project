@@ -18,7 +18,7 @@ void cleanup(int ny_sd);
 
 int main()
 {
-    int errorLog = open("stderr.txt", O_WRONLY);
+    int errorLog = open("logs/stderr.txt", O_WRONLY | O_CREAT);
     dup2(errorLog, 2);
     close(errorLog);
 
@@ -139,6 +139,7 @@ bool checkFileExtension(char* filePath) {
     int extensionIndex = strlen(extension) - 1;
     while (filePath[fileIndex] != '.') {
         if (extensionIndex < 0 || filePath[fileIndex] != extension[extensionIndex]) {
+            perror("Unsupported file type");
             printf("HTTP/1.1 415 Unsupported Media Type\n");
             printf("Content-Type: text/plain\n");
             printf("\n");
