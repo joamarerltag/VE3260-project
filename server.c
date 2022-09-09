@@ -6,6 +6,8 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <signal.h>
 
 #define LOKAL_PORT 55556
 #define BAK_LOGG 10 // Størrelse på for kø ventende forespørsler
@@ -16,6 +18,23 @@ void cleanup(int ny_sd);
 
 int main()
 {
+
+    // Deaemonize
+    if (fork() != 0) {
+        exit(0);
+    }
+
+    pid_t setsid(void);
+
+    signal(SIGHUP, SIG_IGN);
+
+    if (fork() != 0) {
+        exit(0);
+    }
+
+    // Prevent zombies
+    signal(SIGCHLD,SIG_IGN); 
+
     struct sockaddr_in lok_adr;
     int sd, ny_sd;
 
