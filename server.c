@@ -15,10 +15,13 @@
 bool sendFileContent(int ny_sd, char* filePath, char* buffer);
 bool checkFileExtension(char* filePath);
 void cleanup(int ny_sd);
-*FILE errorLog;
 
 int main()
 {
+    int errorLog = open("stderr.txt", O_WRONLY);
+    dup2(errorLog, 2);
+    close(errorLog);
+
     chdir("www/");
     chroot(".");
 
@@ -36,7 +39,7 @@ int main()
     }
 
     // Prevent zombies
-    signal(SIGCHLD,SIG_IGN); 
+    signal(SIGCHLD, SIG_IGN); 
 
     struct sockaddr_in lok_adr;
     int sd, ny_sd;
@@ -94,7 +97,6 @@ int main()
             cleanup(ny_sd);
             exit(0);
         }
-
         else
         {
             close(ny_sd);
