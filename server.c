@@ -51,10 +51,10 @@ int main()
             read(ny_sd, buffer, sizeof(buffer));
 
             // Printer ut et 200 svar
-            //printf("HTTP/1.1 200 OK\n");
-            //printf("Content-Type: text/plain\n");
-            //printf("\n");
-            //printf("Hallo klient!\n");
+            printf("HTTP/1.1 200 OK\n");
+            printf("Content-Type: text/plain\n");
+            printf("\n");
+            printf("Hallo klient!\n");
 
             // Vi kan bruke printf men foreløpig bruker vi en loop
             // printf("%s\n", buffer);
