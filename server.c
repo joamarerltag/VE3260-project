@@ -18,6 +18,9 @@ void cleanup(int ny_sd);
 
 int main()
 {
+    
+    chdir("www/");
+    chroot(".");
 
     // Deaemonize
     if (fork() != 0) {
@@ -124,6 +127,7 @@ bool sendFileContent(int ny_sd, char* filePath, char* buffer) {
     }
 
     close(file);
+
     return true;
 }
 
