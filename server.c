@@ -15,10 +15,10 @@
 bool sendFileContent(int ny_sd, char* filePath, char* buffer);
 bool checkFileExtension(char* filePath);
 void cleanup(int ny_sd);
+*FILE errorLog;
 
 int main()
 {
-    
     chdir("www/");
     chroot(".");
 
