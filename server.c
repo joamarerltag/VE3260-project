@@ -141,18 +141,32 @@ bool checkFileExtension(char* filePath) {
     int fileIndex = strlen(filePath) - 1;
     char* extension = "asis";
     int extensionIndex = strlen(extension) - 1;
-    while (filePath[fileIndex] != '.') {
-        if (extensionIndex < 0 || filePath[fileIndex] != extension[extensionIndex]) {
-            perror("Unsupported file type");
-            printf("HTTP/1.1 415 Unsupported Media Type\n");
-            printf("Content-Type: text/plain\n");
-            printf("\n");
-            printf("The requested file type is not supported. Uuups.\n");
-            return false;
-        }
-        fileIndex -= 1;
-        extensionIndex -= 1;
+
+    // Find file name - we need to consider /files/some.folder.with.dots/file.asis
+    // Hence it is first needed to seek past the / symbols to the last field
+    char* filePathCpy = malloc(strlen(filePath)+sizeof('\0'));
+    strcpy(filePathCpy, filePath);
+
+    char* previousToken = strtok(filePathCpy, "/");
+    char* currentToken;
+    while((currentToken = strtok(NULL, "/")) != NULL)
+        previousToken = currentToken;
+
+    // Then the rest is just to get the extension from the file name
+    char* fileName = previousToken;
+    strtok(fileName, ".");
+    char* fileExtension = strtok(NULL, ".");
+
+    if(fileExtension == NULL || strcmp(extension, fileExtension) != 0){
+        perror("Unsupported file type");
+        printf("HTTP/1.1 415 Unsupported Media Type\n");
+        printf("Content-Type: text/plain\n");
+        printf("\n");
+        printf("The requested file type is not supported. Uuups.\n");
+        free(filePathCpy);
+        return false;
     }
+    free(filePathCpy);
     return true;
 }
 
