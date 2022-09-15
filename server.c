@@ -18,9 +18,13 @@ void cleanup(int ny_sd);
 
 int main()
 {
-    int errorLog = open("logs/stderr.txt", O_WRONLY | O_CREAT);
-    dup2(errorLog, 2);
-    close(errorLog);
+    int errorLog = fopen("logs/stderr.txt", "w");
+    if(errorLog < 0){
+        perror("Couldn't open/create log file");
+    }
+    int errorFd = fileno(errorLog);
+    dup2(errorFd, 2);
+    fclose(errorLog);
 
     chdir("www/");
     chroot(".");
