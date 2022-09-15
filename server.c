@@ -18,7 +18,7 @@ void cleanup(int ny_sd);
 
 int main()
 {
-    int errorLog = fopen("logs/stderr.txt", "w");
+    FILE* errorLog = fopen("logs/stderr.txt", "w");
     if(errorLog < 0){
         perror("Couldn't open/create log file");
     }
