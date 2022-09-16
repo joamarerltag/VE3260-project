@@ -12,6 +12,14 @@
 #define LOKAL_PORT 80
 #define BAK_LOGG 10 // Størrelse på for kø ventende forespørsler
 
+// Struct for file type and corresponding extension
+struct MimeEntry {
+    char* extension;
+    char* type;
+    struct MimeEntry* next;
+};
+
+bool readMimeIntoMemory(struct MimeEntry** l_head);
 bool sendFileContent(int ny_sd, char* filePath, char* buffer);
 bool checkFileExtension(char* filePath);
 void cleanup(int ny_sd);
@@ -28,6 +36,9 @@ int main()
 
     chdir("www/");
     chroot(".");
+
+    struct MimeEntry* l_head;
+    readMimeIntoMemory(&l_head);
 
     // Deaemonize
     if (fork() != 0) {
@@ -107,6 +118,62 @@ int main()
         }
     }
     return 0;
+}
+
+bool readMimeIntoMemory(struct MimeEntry** l_head) {
+    char* buffer = NULL; // Buffer to contain read line
+    char* fileExtensions = NULL; // File extensions for content type
+    char* contentType = NULL; // Content type of current line
+
+    size_t   getLineBufSize = 0;    // Buffer length for getline
+    int      count = 0;    // Number of characters read 
+    int      typeLength = 0;    // Length of content type
+
+    // Pointers for linked list
+    *l_head = malloc(sizeof(struct MimeEntry));
+    struct MimeEntry* l_current = l_head;
+    struct MimeEntry* l_tail = NULL; // Last element in list
+
+    // aapner mimetype-fila
+    FILE* mimeFile = fopen("/etc/mime.types", "r");
+
+    while (0 < (count = getline(&buffer, &getLineBufSize, mimeFile))) {
+
+        if (buffer[0] == '#')  continue; // Hopper over kommentarer
+        if (count < 2)  continue; // Hopper over tomme linjer
+        buffer[count - 1] = '\0';               // Fjerner linjeskift
+
+        // Mimetypen (venstre kolonne)
+        contentType = strtok(buffer, "\t ");
+        typeLength = strlen(contentType);
+
+        // Gjennomløper filendelsene
+        while (0 != (fileExtensions = strtok(NULL, "\t "))) {
+
+            // setter filendelse i liste-element
+            l_current->extension = malloc(strlen(fileExtensions) + sizeof('\0'));
+            strcpy(l_current->extension, fileExtensions);
+
+            // setter mimetype i liste-element
+            l_current->type = malloc(contentType + sizeof('\0'));
+            strcpy(l_pek->type, typeLength);
+
+            // setter nytt tomt element i lista
+            l_current->next = malloc(sizeof(struct MimeEntry));
+            l_tail = l_current; // referanse til siste element med innhold
+            l_current = l_current->next;
+        }
+    }
+
+    // Lukker fila
+    fclose(mimeFile);
+
+    // Frigjør minne brukt av strtok
+    free(buffer);
+
+    // Fjerner siste element (som er tomt)
+    l_tail->next = NULL;
+    free(l_current);
 }
 
 bool sendFileContent(int ny_sd, char* filePath, char* buffer) {
