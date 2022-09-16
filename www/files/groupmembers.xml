@@ -1,0 +1,22 @@
+<students>
+    <student>
+        <name>Erlend</name>
+        <age>25</age>
+        <description>Erlend is a great guy.</description>
+    </student>
+    <student>
+        <name>Joakim</name>
+        <age>23</age>
+        <description>Joakim is a good guy.</description>
+    </student>
+    <student>
+        <name>Martin</name>
+        <age>27</age>
+        <description>Martin is an alright guy.</description>
+    </student>
+    <student>
+        <name>Tage</name>
+        <age>23</age>
+        <description>Tage is not such a good guy.</description>
+    </student>
+</students>
