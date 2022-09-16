@@ -197,7 +197,7 @@ bool sendFileContent(int ny_sd, char* filePath, char* buffer, char* contentType)
 
         printf("HTTP/1.1 200 OK\n");
         printf("Content-Type: %s\n", contentType);
-        printf("Content-Length: %ld", statbuf.st_size);
+        printf("Content-Length: %ld\n", statbuf.st_size);
         printf("\n");
 
         fflush(stdout);
@@ -260,6 +260,12 @@ char* checkFileExtension(char* filePath, struct MimeEntry* l_head) {
         }
         l_current = l_current->next;
     }
+
+    perror("Unsupported file type");
+    printf("HTTP/1.1 415 Unsupported Media Type\n");
+    printf("Content-Type: text/plain\n");
+    printf("\n");
+    printf("The requested file type is not supported. Uuups.\n");
     return NULL;
 }
 
