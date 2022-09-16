@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <signal.h>
 
 #define LOKAL_PORT 80
@@ -20,8 +21,8 @@ struct MimeEntry {
 };
 
 bool readMimeIntoMemory(struct MimeEntry** l_head);
-bool sendFileContent(int ny_sd, char* filePath, char* buffer);
-bool checkFileExtension(char* filePath);
+bool sendFileContent(int ny_sd, char* filePath, char* buffer, bool asis);
+bool checkFileExtension(char* filePath, struct MimeEntry* l_head, bool* isAsis);
 void cleanup(int ny_sd);
 
 int main()
@@ -176,7 +177,7 @@ bool readMimeIntoMemory(struct MimeEntry** l_head) {
     free(l_current);
 }
 
-bool sendFileContent(int ny_sd, char* filePath, char* buffer) {
+bool sendFileContent(int ny_sd, char* filePath, char* buffer, char* contentType) {
     int file = open(filePath, O_RDONLY); // Attempts to open file
     if (file < 0) {
         fprintf(stderr, "Error while opening file %s", filePath);
@@ -187,6 +188,18 @@ bool sendFileContent(int ny_sd, char* filePath, char* buffer) {
         printf("\n");
         printf("The requested file does not exist. Uuups.\n");
         return false;
+    }
+
+    if (strcmp(contentType, "asis") != 0) {
+        struct stat statbuf;
+        stat(filePath, &statbuf);
+
+        printf("HTTP/1.1 200 OK\n");
+        printf("Content-Type: %s\n", contentType);
+        printf("Content-Length: %ld", statbuf.st_size);
+        printf("\n");
+
+        fflush(stdout);
     }
 
     int bytesRead;
@@ -204,7 +217,7 @@ bool sendFileContent(int ny_sd, char* filePath, char* buffer) {
     return true;
 }
 
-bool checkFileExtension(char* filePath) {
+char* checkFileExtension(char* filePath, struct MimeEntry* l_head) {
     char* extension = "asis";
 
     // Find file name - we need to consider /files/some.folder.with.dots/file.asis
@@ -222,17 +235,31 @@ bool checkFileExtension(char* filePath) {
     strtok(fileName, ".");
     char* fileExtension = strtok(NULL, ".");
 
-    if(fileExtension == NULL || strcmp(extension, fileExtension) != 0){
+    if(fileExtension == NULL){
         perror("Unsupported file type");
         printf("HTTP/1.1 415 Unsupported Media Type\n");
         printf("Content-Type: text/plain\n");
         printf("\n");
         printf("The requested file type is not supported. Uuups.\n");
-        free(filePathCpy);
-        return false;
+        return NULL;
     }
-    free(filePathCpy);
-    return true;
+
+
+    if (strcmp(extension, fileExtension) == 0) {
+        return "asis";
+    }
+    struct MimeEntry* l_current = l_head;
+    while (l_current != NULL) {
+        extension = strtok(l_current->extension, " ");
+        while (extension != NULL) {
+            if (strcmp(extension, fileExtension) == 0) {
+                return l_current->type;
+            }
+            extension = strtok(NULL, " ");
+        }
+        l_current = l_current->next;
+    }
+    return NULL;
 }
 
 void cleanup(int ny_sd) {
