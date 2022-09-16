@@ -21,8 +21,8 @@ struct MimeEntry {
 };
 
 bool readMimeIntoMemory(struct MimeEntry** l_head);
-bool sendFileContent(int ny_sd, char* filePath, char* buffer, bool asis);
-bool checkFileExtension(char* filePath, struct MimeEntry* l_head, bool* isAsis);
+bool sendFileContent(int ny_sd, char* filePath, char* buffer, char* contentType);
+char* checkFileExtension(char* filePath, struct MimeEntry* l_head);
 void cleanup(int ny_sd);
 
 int main()
@@ -105,7 +105,8 @@ int main()
             filePath[0] = '.';
             strcat(filePath, fileName); // Adds '.' to file path to create relative path
 
-            if (!checkFileExtension(filePath) || !sendFileContent(ny_sd, filePath, buffer)) {
+            char* contentType;
+            if ((contentType = checkFileExtension(filePath, l_head)) == NULL || !sendFileContent(ny_sd, filePath, buffer, contentType)) {
                 cleanup(ny_sd);
                 exit(1);
             }
@@ -132,7 +133,7 @@ bool readMimeIntoMemory(struct MimeEntry** l_head) {
 
     // Pointers for linked list
     *l_head = malloc(sizeof(struct MimeEntry));
-    struct MimeEntry* l_current = l_head;
+    struct MimeEntry* l_current = *l_head;
     struct MimeEntry* l_tail = NULL; // Last element in list
 
     // aapner mimetype-fila
@@ -156,8 +157,8 @@ bool readMimeIntoMemory(struct MimeEntry** l_head) {
             strcpy(l_current->extension, fileExtensions);
 
             // setter mimetype i liste-element
-            l_current->type = malloc(contentType + sizeof('\0'));
-            strcpy(l_pek->type, typeLength);
+            l_current->type = malloc(typeLength + sizeof('\0'));
+            strcpy(l_current->type, contentType);
 
             // setter nytt tomt element i lista
             l_current->next = malloc(sizeof(struct MimeEntry));
