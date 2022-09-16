@@ -138,9 +138,7 @@ bool sendFileContent(int ny_sd, char* filePath, char* buffer) {
 }
 
 bool checkFileExtension(char* filePath) {
-    int fileIndex = strlen(filePath) - 1;
     char* extension = "asis";
-    int extensionIndex = strlen(extension) - 1;
 
     // Find file name - we need to consider /files/some.folder.with.dots/file.asis
     // Hence it is first needed to seek past the / symbols to the last field
