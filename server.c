@@ -45,6 +45,7 @@ int main()
         FILE* errorLog = fopen("/var/log/debug.log", "w");
         if (errorLog < 0) {
             perror("Couldn't open/create log file");
+            fflush(stderr);
         }
         int errorFd = fileno(errorLog);
         dup2(errorFd, 2);
@@ -84,6 +85,19 @@ int main()
 
         chdir("/var/www/");
         chroot(".");
+
+        // Deaemonize
+        if (fork() != 0) {
+            exit(0);
+        }
+
+        pid_t setsid(void);
+
+        signal(SIGHUP, SIG_IGN);
+
+        if (fork() != 0) {
+            exit(0);
+        }
     }
 
     // Prevent zombies
