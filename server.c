@@ -27,10 +27,30 @@ void cleanup(int ny_sd);
 
 int main()
 {
-    char* root;
+    char* root = "";
+    struct MimeEntry* l_head;
+
     if (getppid() != 1) {
-        chdir("./world_wide_web/");
+        root = "world_wide_web";
+
+        chdir(root);
         chroot(".");
+
+        struct stat sb;
+        if (stat("/var/log", &sb) != 0) {
+            mkdir("/var", NULL);
+            mkdir("/var/log", NULL);
+        }
+
+        FILE* errorLog = fopen("/var/log/debug.log", "w");
+        if (errorLog < 0) {
+            perror("Couldn't open/create log file");
+        }
+        int errorFd = fileno(errorLog);
+        dup2(errorFd, 2);
+        fclose(errorLog);
+
+        readMimeIntoMemory(&l_head);
 
         // Deaemonize
         if (fork() != 0) {
@@ -46,27 +66,25 @@ int main()
         }
     }
     else {
+        struct stat sb;
+        if (stat("/var/log", &sb) != 0) {
+            mkdir("/var", NULL);
+            mkdir("/var/log", NULL);
+        }
+
+        FILE* errorLog = fopen("/var/log/debug.log", "w");
+        if (errorLog < 0) {
+            perror("Couldn't open/create log file");
+        }
+        int errorFd = fileno(errorLog);
+        dup2(errorFd, 2);
+        fclose(errorLog);
+
+        readMimeIntoMemory(&l_head);
+
         chdir("/var/www/");
         chroot(".");
     }
-
-    char* logDir = "/var/log";
-    struct stat sb;
-    if (stat(logDir, &sb) != 0) {
-        mkdir("/var", NULL);
-        mkdir("/var/log", NULL);
-    }
-
-    FILE* errorLog = fopen("/var/log/debug.log", "w");
-    if (errorLog < 0) {
-        perror("Couldn't open/create log file");
-    }
-    int errorFd = fileno(errorLog);
-    dup2(errorFd, 2);
-    fclose(errorLog);
-
-    struct MimeEntry* l_head;
-    readMimeIntoMemory(&l_head);
 
     // Prevent zombies
     signal(SIGCHLD, SIG_IGN); 

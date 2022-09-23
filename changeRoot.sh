@@ -1,13 +1,16 @@
 #!/bin/bash
-ROTFS=$PWD/unshare-container2
+ROTFS=$PWD/myContainer
 if [ ! -d $ROTFS ];then
     mkdir -p $ROTFS/{bin,proc,etc,var/www}
     cd       $ROTFS/bin/
     cp       /bin/busybox .
-    for P in $(./busybox --list | grep -v busybox); do ln busybox $P; done;
-    echo "::once:/bin/httpd -p 8080 -h /var/www" >  $ROTFS/etc/inittab
- 
-    echo "hallo" >  $ROTFS/var/www/hallo.txt
+    for P in $(./busybox --list | grep -v busybox); do ln -s busybox $P; done;
+    cd ..
+    cd ..
+    cp /etc/mime.types $ROTFS/etc/
+    cp -r $PWD/world_wide_web/files $ROTFS/var/www/
+    cp $PWD/myServer_static $ROTFS/bin/myServer
+    echo "::once:/bin/myServer" >  $ROTFS/etc/inittab
  
 fi
  
