@@ -27,32 +27,46 @@ void cleanup(int ny_sd);
 
 int main()
 {
-    FILE* errorLog = fopen("logs/stderr.txt", "w");
-    if(errorLog < 0){
+    char* root;
+    if (getppid() != 1) {
+        chdir("./world_wide_web/");
+        chroot(".");
+
+        // Deaemonize
+        if (fork() != 0) {
+            exit(0);
+        }
+
+        pid_t setsid(void);
+
+        signal(SIGHUP, SIG_IGN);
+
+        if (fork() != 0) {
+            exit(0);
+        }
+    }
+    else {
+        chdir("/var/www/");
+        chroot(".");
+    }
+
+    char* logDir = "/var/log";
+    struct stat sb;
+    if (stat(logDir, &sb) != 0) {
+        mkdir("/var", NULL);
+        mkdir("/var/log", NULL);
+    }
+
+    FILE* errorLog = fopen("/var/log/debug.log", "w");
+    if (errorLog < 0) {
         perror("Couldn't open/create log file");
     }
     int errorFd = fileno(errorLog);
     dup2(errorFd, 2);
     fclose(errorLog);
 
-    //chdir("www/");
-    chroot(".");
-
     struct MimeEntry* l_head;
     readMimeIntoMemory(&l_head);
-
-    // Deaemonize
-    if (fork() != 0) {
-        exit(0);
-    }
-
-    pid_t setsid(void);
-
-    signal(SIGHUP, SIG_IGN);
-
-    if (fork() != 0) {
-        exit(0);
-    }
 
     // Prevent zombies
     signal(SIGCHLD, SIG_IGN); 
