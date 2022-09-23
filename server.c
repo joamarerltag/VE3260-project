@@ -35,7 +35,7 @@ int main()
     dup2(errorFd, 2);
     fclose(errorLog);
 
-    chdir("www/");
+    //chdir("www/");
     chroot(".");
 
     struct MimeEntry* l_head;
