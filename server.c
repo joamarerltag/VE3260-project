@@ -27,31 +27,63 @@ void cleanup(int ny_sd);
 
 int main()
 {
-    FILE* errorLog = fopen("logs/stderr.txt", "w");
-    if(errorLog < 0){
-        perror("Couldn't open/create log file");
-    }
-    int errorFd = fileno(errorLog);
-    dup2(errorFd, 2);
-    fclose(errorLog);
-
-    chdir("www/");
-    chroot(".");
-
+    char* root = "";
     struct MimeEntry* l_head;
-    readMimeIntoMemory(&l_head);
 
-    // Deaemonize
-    if (fork() != 0) {
-        exit(0);
+    if (getppid() != 1) {
+        root = "world_wide_web";
+
+        chdir(root);
+        chroot(".");
+
+        struct stat sb;
+        if (stat("/var/log", &sb) != 0) {
+            mkdir("/var", NULL);
+            mkdir("/var/log", NULL);
+        }
+
+        FILE* errorLog = fopen("/var/log/debug.log", "w");
+        if (errorLog < 0) {
+            perror("Couldn't open/create log file");
+        }
+        int errorFd = fileno(errorLog);
+        dup2(errorFd, 2);
+        fclose(errorLog);
+
+        readMimeIntoMemory(&l_head);
+
+        // Deaemonize
+        if (fork() != 0) {
+            exit(0);
+        }
+
+        pid_t setsid(void);
+
+        signal(SIGHUP, SIG_IGN);
+
+        if (fork() != 0) {
+            exit(0);
+        }
     }
+    else {
+        struct stat sb;
+        if (stat("/var/log", &sb) != 0) {
+            mkdir("/var", NULL);
+            mkdir("/var/log", NULL);
+        }
 
-    pid_t setsid(void);
+        FILE* errorLog = fopen("/var/log/debug.log", "w");
+        if (errorLog < 0) {
+            perror("Couldn't open/create log file");
+        }
+        int errorFd = fileno(errorLog);
+        dup2(errorFd, 2);
+        fclose(errorLog);
 
-    signal(SIGHUP, SIG_IGN);
+        readMimeIntoMemory(&l_head);
 
-    if (fork() != 0) {
-        exit(0);
+        chdir("/var/www/");
+        chroot(".");
     }
 
     // Prevent zombies
