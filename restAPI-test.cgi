@@ -13,6 +13,8 @@ echo
 
 if [ "$REQUEST_METHOD" = "GET" ]; then
     echo $REQUEST_URI skal hentes
+
+    ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
 fi
 
 if [ "$REQUEST_METHOD" = "POST" ]; then
@@ -20,8 +22,15 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
     echo
 
     # skriver HTTP-kropp (hodet er allerede lest av web-tjeneren)
-    head -c $CONTENT_LENGTH
-    echo 
+    # skriver-hode
+    BODY=$(head -c $CONTENT_LENGTH)
+    echo "$BODY"
+    echo
+
+    ID=$(echo "$BODY" | xmllint --xpath "/dikt/diktID/text()" -)
+    DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
+    EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
+    echo INSERT INTO Dikt VALUES \("$ID", \""$DIKT"\", \""$EPOST"\"\)\; | sqlite3 /var/www/data/VE3260-project/db/diktDB.db
 fi
 
 if [ "$REQUEST_METHOD" = "PUT" ]; then
@@ -30,13 +39,19 @@ if [ "$REQUEST_METHOD" = "PUT" ]; then
 
     # skriver-hode
     BODY=$(head -c $CONTENT_LENGTH)
+    echo "$BODY"
     echo 
 
-    DIKT=$(xmllint --xpath "/dikt/dikt/text()" "$BODY")
-    EPOST=$(xmllint --xpath "/dikt/epostadresse/text()" "$BODY")
-    echo UPDATE Dikt SET dikt=\""$DIKT"\", epostadresse=\""$EPOST"\" WHERE diktID=1\; | sqlite3 diktDB.db
+    ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
+    DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
+    EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
+    echo UPDATE Dikt SET dikt=\""$DIKT"\", epostadresse=\""$EPOST"\" WHERE diktID="$ID"\; | sqlite3 /var/www/data/VE3260-project/db/diktDB.db
 fi
 
 if [ "$REQUEST_METHOD" = "DELETE" ]; then
     echo $REQUEST_URI skal slettes
+
+    ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
+
+    echo DELETE FROM Dikt WHERE diktID=$ID\; | sqlite3 /var/www/data/VE3260-project/db/diktDB.db
 fi
