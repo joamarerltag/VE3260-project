@@ -29,8 +29,12 @@ if [ "$REQUEST_METHOD" = "PUT" ]; then
     echo
 
     # skriver-hode
-    head -c $CONTENT_LENGTH
+    BODY=$(head -c $CONTENT_LENGTH)
     echo 
+
+    DIKT=$(xmllint --xpath "/dikt/dikt/text()" "$BODY")
+    EPOST=$(xmllint --xpath "/dikt/epostadresse/text()" "$BODY")
+    echo UPDATE Dikt SET dikt=\""$DIKT"\", epostadresse=\""$EPOST"\" WHERE diktID=1\; | sqlite3 diktDB.db
 fi
 
 if [ "$REQUEST_METHOD" = "DELETE" ]; then
