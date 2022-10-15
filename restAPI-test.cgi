@@ -16,6 +16,19 @@ if [ "$REQUEST_METHOD" != "POST" ] || [ $(echo "$REQUEST_URI" | cut -d'/' -f2) !
     echo
 fi
 
+#Attempts to get current session id from cookie
+CSESSION=$(echo "$HTTP_COOKIE" | xargs -d';' | grep sessionId | cut -d'=' -f2)
+CSESSION_EPOST=$(echo "SELECT epostadresse FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB)
+if [ -n "$CSESSION_EPOST" ]; then
+    echo "Current session: $CSESSION"
+    echo "Logged in as: $CSESSION_EPOST"
+    echo
+else
+    echo "Not logged in"
+    echo
+    CSESSION=""
+fi
+
 if [ "$REQUEST_METHOD" = "GET" ]; then
     echo $REQUEST_URI skal hentes
 
