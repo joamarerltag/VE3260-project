@@ -6,7 +6,7 @@ CREATE TABLE Bruker(
 );
 
 CREATE TABLE Sesjon(
-	sesjonsID INTEGER PRIMARY KEY,
+	sesjonsID TEXT PRIMARY KEY,
 	epostadresse TEXT,
 	FOREIGN KEY(epostadresse)
 	REFERENCES Bruker(epostadresse)
@@ -19,3 +19,9 @@ CREATE TABLE Dikt(
 	FOREIGN KEY(epostadresse)
 	REFERENCES Bruker(epostadresse)
 );
+
+INSERT INTO Bruker
+VALUES ("test@testus.gov","9c690591b6da6fd241f2773127ce967f","Hans","Gebroikenlaich");
+
+INSERT INTO Dikt
+VALUES (1, "Dikt på svikt", "test@testus.gov");
