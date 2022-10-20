@@ -14,19 +14,23 @@ if [ "$REQUEST_METHOD" != "POST" ] || [ $(echo "$REQUEST_URI" | cut -d'/' -f2) !
     echo REQUEST_URI:    $REQUEST_URI 
     echo REQUEST_METHOD: $REQUEST_METHOD
     echo
+else
+    LOGIN_REQUEST=1
 fi
 
 #Attempts to get current session id from cookie
 CSESSION=$(echo "$HTTP_COOKIE" | xargs -d';' | grep sessionId | cut -d'=' -f2)
 CSESSION_EPOST=$(echo "SELECT epostadresse FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB)
-if [ -n "$CSESSION_EPOST" ]; then
-    echo "Current session: $CSESSION"
-    echo "Logged in as: $CSESSION_EPOST"
-    echo
-else
-    echo "Not logged in"
-    echo
-    CSESSION=""
+if [ "$LOGIN_REQUEST" = "" ]; then
+    if [ "$CSESSION_EPOST" != "" ]; then
+        echo "Current session: $CSESSION"
+        echo "Logged in as: $CSESSION_EPOST"
+        echo
+    else
+        echo "Not logged in"
+        echo
+        CSESSION=""
+    fi
 fi
 
 if [ "$REQUEST_METHOD" = "GET" ]; then
@@ -51,7 +55,6 @@ if [ "$REQUEST_METHOD" = "GET" ]; then
     fi
     if [ "$ID" != "" ]; then
         QUERY=$(echo "SELECT * FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB )
-        echo $QUERY
         DIKT=$(echo $QUERY | cut -d '|' -f 2)
         EPOST=$(echo $QUERY | cut -d '|' -f 3)
 
@@ -80,7 +83,7 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         echo REQUEST_METHOD: $REQUEST_METHOD
         echo
 
-        if [ -n "$SESSION" ]; then
+        if [ "$SESSION" != "" ]; then
             echo Innlogging velykket
             echo
         else
@@ -96,41 +99,73 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         echo "$BODY"
         echo
     else
-        echo Følgende skal settes inn i $REQUEST_URI:
-        echo
+        if [ "$CSESSION" != "" ]; then
+            echo Følgende skal settes inn i $REQUEST_URI:
+            echo
 
-        # skriver HTTP-kropp (hodet er allerede lest av web-tjeneren)
-        # skriver-hode
-        BODY=$(head -c $CONTENT_LENGTH)
-        echo "$BODY"
-        echo
+            # skriver HTTP-kropp (hodet er allerede lest av web-tjeneren)
+            # skriver-hode
+            BODY=$(head -c $CONTENT_LENGTH)
+            echo "$BODY"
+            echo
 
-        ID=$(echo "$BODY" | xmllint --xpath "/dikt/diktID/text()" -)
-        DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
-        EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
-        echo INSERT INTO Dikt VALUES \("$ID", \""$DIKT"\", \""$EPOST"\"\)\; | sqlite3 $DB
+            ID=$(echo "$BODY" | xmllint --xpath "/dikt/diktID/text()" -)
+            DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
+            # TODISCUSS: burde man kunne sette inn et dikt med en annen email enn den man er logget inn med?
+            EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
+            echo "INSERT INTO Dikt VALUES (\"$ID\", \"$DIKT\", \"$EPOST\");" | sqlite3 $DB
+        else
+            echo "Need to be logged in to do this operation"
+        fi
     fi
 fi
 
 if [ "$REQUEST_METHOD" = "PUT" ]; then
-    echo $REQUEST_URI skal endres slik:
-    echo
+    if [ "$CSESSION" != "" ]; then
+        echo $REQUEST_URI skal endres slik:
+        echo
 
-    # skriver-hode
-    BODY=$(head -c $CONTENT_LENGTH)
-    echo "$BODY"
-    echo 
+        # skriver-hode
+        BODY=$(head -c $CONTENT_LENGTH)
+        echo "$BODY"
+        echo 
 
-    ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
-    DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
-    EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
-    echo UPDATE Dikt SET dikt=\""$DIKT"\", epostadresse=\""$EPOST"\" WHERE diktID="$ID"\; | sqlite3 $DB
+        ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
+        echo ID: $ID
+        EPOST_OWNER=$(echo "SELECT epostadresse FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB)
+        if [ "$EPOST_OWNER" = "$CSESSION_EPOST" ]; then
+            DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
+            EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
+            if [ "$DIKT" != "" ]; then
+                echo "UPDATE Dikt SET dikt=\"$DIKT\" WHERE diktID=$ID;" | sqlite3 $DB
+            fi
+            if [ "$EPOST" != "" ]; then
+                echo "UPDATE Dikt SET epostadresse=\"$EPOST\" WHERE diktID=$ID;" | sqlite3 $DB
+            fi
+        else
+            echo "This poem is not owned by the user that is currently logged in."
+        fi
+    else
+        echo "Need to be logged in to do this operation"
+    fi
 fi
 
 if [ "$REQUEST_METHOD" = "DELETE" ]; then
-    echo $REQUEST_URI skal slettes
+    if [ "$CSESSION" != "" ]; then
+        echo $REQUEST_URI skal slettes
 
-    ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
-
-    echo DELETE FROM Dikt WHERE diktID=$ID\; | sqlite3 $DB
+        ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
+        if [ "$ID" != "" ]; then
+            EPOST_OWNER=$(echo "SELECT epostadresse FROM Dikt WHERE diktID=\"$ID\";" | sqlite3 $DB)
+            if [ "$EPOST_OWNER" = "$CSESSION_EPOST" ]; then
+                echo "DELETE FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB
+            else
+                echo "This poem is not owned by the user that is currently logged in"
+            fi
+        else
+            echo "DELETE FROM Dikt WHERE epostadresse=\"$CSESSION_EPOST\";" | sqlite3 $DB
+        fi
+    else
+        echo "Need to be logged in to do this operation"
+    fi
 fi
