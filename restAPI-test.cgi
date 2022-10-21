@@ -33,37 +33,10 @@ if [ "$LOGIN_REQUEST" = "" ]; then
     fi
 fi
 
-if [ "$REQUEST_METHOD" = "GET" ]; then
-    echo $REQUEST_URI skal hentes
-
-    ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
-    if [ "$ID" = "" ]; then
-        QUERY=$(echo "SELECT * FROM Dikt;" | sqlite3 $DB)
-        LINES=$(echo "$QUERY" | wc -l)
-
-        echo -n "<dikt>"
-        for VARIABLE in $(seq 1 $LINES)
-        do
-            LINE=$(echo "$QUERY" | head -$VARIABLE | tail -1)
-            ID=$(echo $LINE | cut -d '|' -f 1)
-            DIKT=$(echo $LINE | cut -d '|' -f 2)
-            EPOST=$(echo $LINE | cut -d '|' -f 3)
-            echo -n "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
-        done
-        echo "</dikt>"
-        ID=""
-    fi
-    if [ "$ID" != "" ]; then
-        QUERY=$(echo "SELECT * FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB )
-        DIKT=$(echo $QUERY | cut -d '|' -f 2)
-        EPOST=$(echo $QUERY | cut -d '|' -f 3)
-
-        echo "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
-    fi
-fi
-
-if [ "$REQUEST_METHOD" = "POST" ]; then
-    if [ $(echo "$REQUEST_URI" | cut -d'/' -f2) = "login" ]; then
+ENDPOINT=$(echo "$REQUEST_URI" | cut -d'/' -f2)
+echo ENDPOINT: $ENDPOINT
+if [ "$ENDPOINT" = "login" ]; then
+    if [ "$REQUEST_METHOD" = "POST" ]; then
         BODY=$(head -c $CONTENT_LENGTH)
 
         EPOST=$(echo "$BODY" | xmllint --xpath "/bruker/epostadresse/text()" -)
@@ -71,6 +44,9 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         PASSORDCHECK=$(echo "SELECT passordhash FROM Bruker WHERE epostadresse=\"$EPOST\";" | sqlite3 $DB)
 
         if [ "$PASSORD" = "$PASSORDCHECK" ]; then
+            if [ "$CSESSION" != "" ]; then
+                echo "DELETE FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB
+            fi
             SESSION=$(uuidgen)
             echo "INSERT INTO Sesjon VALUES (\"$SESSION\", \"$EPOST\");" | sqlite3 $DB
             echo "Set-Cookie: sessionId=$SESSION"
@@ -98,7 +74,44 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
         # skriver-hode
         echo "$BODY"
         echo
+    fi
+elif [ "$ENDPOINT" = "logout" ]; then
+    if [ "$CSESSION" != "" ]; then
+        echo "DELETE FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB
+        echo "You have been logged out"
     else
+        echo "You aren't logged in."
+    fi
+elif [ "$ENDPOINT" = "dikt" ]; then
+    if [ "$REQUEST_METHOD" = "GET" ]; then
+        echo $REQUEST_URI skal hentes
+
+        ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
+        if [ "$ID" = "" ]; then
+            QUERY=$(echo "SELECT * FROM Dikt;" | sqlite3 $DB)
+            LINES=$(echo "$QUERY" | wc -l)
+
+            echo -n "<dikt>"
+            for VARIABLE in $(seq 1 $LINES)
+            do
+                LINE=$(echo "$QUERY" | head -$VARIABLE | tail -1)
+                ID=$(echo $LINE | cut -d '|' -f 1)
+                DIKT=$(echo $LINE | cut -d '|' -f 2)
+                EPOST=$(echo $LINE | cut -d '|' -f 3)
+                echo -n "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
+            done
+            echo "</dikt>"
+            ID=""
+        fi
+        if [ "$ID" != "" ]; then
+            QUERY=$(echo "SELECT * FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB )
+            DIKT=$(echo $QUERY | cut -d '|' -f 2)
+            EPOST=$(echo $QUERY | cut -d '|' -f 3)
+
+            echo "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
+        fi
+    fi
+    if [ "$REQUEST_METHOD" = "POST" ]; then
         if [ "$CSESSION" != "" ]; then
             echo Følgende skal settes inn i $REQUEST_URI:
             echo
@@ -111,61 +124,59 @@ if [ "$REQUEST_METHOD" = "POST" ]; then
 
             ID=$(echo "$BODY" | xmllint --xpath "/dikt/diktID/text()" -)
             DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
-            # TODISCUSS: burde man kunne sette inn et dikt med en annen email enn den man er logget inn med?
-            EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
-            echo "INSERT INTO Dikt VALUES (\"$ID\", \"$DIKT\", \"$EPOST\");" | sqlite3 $DB
+	    echo "INSERT INTO Dikt (dikt, epostadresse) VALUES (\"$DIKT\", \"$CSESSION_EPOST\");" | sqlite3 $DB
         else
             echo "Need to be logged in to do this operation"
         fi
     fi
-fi
+    if [ "$REQUEST_METHOD" = "PUT" ]; then
+        if [ "$CSESSION" != "" ]; then
+            echo $REQUEST_URI skal endres slik:
+            echo
 
-if [ "$REQUEST_METHOD" = "PUT" ]; then
-    if [ "$CSESSION" != "" ]; then
-        echo $REQUEST_URI skal endres slik:
-        echo
+            # skriver-hode
+            BODY=$(head -c $CONTENT_LENGTH)
+            echo "$BODY"
+            echo 
 
-        # skriver-hode
-        BODY=$(head -c $CONTENT_LENGTH)
-        echo "$BODY"
-        echo 
-
-        ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
-        echo ID: $ID
-        EPOST_OWNER=$(echo "SELECT epostadresse FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB)
-        if [ "$EPOST_OWNER" = "$CSESSION_EPOST" ]; then
-            DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
-            EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
-            if [ "$DIKT" != "" ]; then
-                echo "UPDATE Dikt SET dikt=\"$DIKT\" WHERE diktID=$ID;" | sqlite3 $DB
-            fi
-            if [ "$EPOST" != "" ]; then
-                echo "UPDATE Dikt SET epostadresse=\"$EPOST\" WHERE diktID=$ID;" | sqlite3 $DB
-            fi
-        else
-            echo "This poem is not owned by the user that is currently logged in."
-        fi
-    else
-        echo "Need to be logged in to do this operation"
-    fi
-fi
-
-if [ "$REQUEST_METHOD" = "DELETE" ]; then
-    if [ "$CSESSION" != "" ]; then
-        echo $REQUEST_URI skal slettes
-
-        ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
-        if [ "$ID" != "" ]; then
-            EPOST_OWNER=$(echo "SELECT epostadresse FROM Dikt WHERE diktID=\"$ID\";" | sqlite3 $DB)
+            ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
+            echo ID: $ID
+            EPOST_OWNER=$(echo "SELECT epostadresse FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB)
             if [ "$EPOST_OWNER" = "$CSESSION_EPOST" ]; then
-                echo "DELETE FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB
+                DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
+                EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
+                if [ "$DIKT" != "" ]; then
+                    echo "UPDATE Dikt SET dikt=\"$DIKT\" WHERE diktID=$ID;" | sqlite3 $DB
+                fi
+                if [ "$EPOST" != "" ]; then
+                    echo "UPDATE Dikt SET epostadresse=\"$EPOST\" WHERE diktID=$ID;" | sqlite3 $DB
+                fi
             else
-                echo "This poem is not owned by the user that is currently logged in"
+                echo "This poem is not owned by the user that is currently logged in."
             fi
         else
-            echo "DELETE FROM Dikt WHERE epostadresse=\"$CSESSION_EPOST\";" | sqlite3 $DB
+            echo "Need to be logged in to do this operation"
         fi
-    else
-        echo "Need to be logged in to do this operation"
     fi
+    if [ "$REQUEST_METHOD" = "DELETE" ]; then
+        if [ "$CSESSION" != "" ]; then
+            echo $REQUEST_URI skal slettes
+
+            ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
+            if [ "$ID" != "" ]; then
+                EPOST_OWNER=$(echo "SELECT epostadresse FROM Dikt WHERE diktID=\"$ID\";" | sqlite3 $DB)
+                if [ "$EPOST_OWNER" = "$CSESSION_EPOST" ]; then
+                    echo "DELETE FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB
+                else
+                    echo "This poem is not owned by the user that is currently logged in"
+                fi
+            else
+                echo "DELETE FROM Dikt WHERE epostadresse=\"$CSESSION_EPOST\";" | sqlite3 $DB
+            fi
+        else
+            echo "Need to be logged in to do this operation"
+        fi
+    fi
+else
+    echo "This endpoint has undefined operation"
 fi
