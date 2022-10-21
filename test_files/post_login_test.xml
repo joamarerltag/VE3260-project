@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<!DOCTYPE bruker SYSTEM "post_login.dtd">
+<bruker>
+    <epostadresse>test@testus.gov</epostadresse>
+    <passord>passord123</passord>
+</bruker>

@@ -5,14 +5,10 @@
 DB="/var/www/data/VE3260-project/db/diktDB.db"
 
 # Skriver ut 'http-header' for 'plain-text'
-echo "Content-type:text/plain;charset=utf-8"
+echo "Content-type:text/xml;charset=utf-8"
 
 if [ "$REQUEST_METHOD" != "POST" ] || [ $(echo "$REQUEST_URI" | cut -d'/' -f2) != "login" ]; then
     # Skriver ut tom linje for å skille hodet fra kroppen
-    echo
-
-    echo REQUEST_URI:    $REQUEST_URI 
-    echo REQUEST_METHOD: $REQUEST_METHOD
     echo
 else
     LOGIN_REQUEST=1
@@ -21,20 +17,22 @@ fi
 #Attempts to get current session id from cookie
 CSESSION=$(echo "$HTTP_COOKIE" | xargs -d';' | grep sessionId | cut -d'=' -f2)
 CSESSION_EPOST=$(echo "SELECT epostadresse FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB)
-if [ "$LOGIN_REQUEST" = "" ]; then
-    if [ "$CSESSION_EPOST" != "" ]; then
-        echo "Current session: $CSESSION"
-        echo "Logged in as: $CSESSION_EPOST"
-        echo
-    else
-        echo "Not logged in"
-        echo
-        CSESSION=""
-    fi
+#if [ "$LOGIN_REQUEST" = "" ]; then
+#    if [ "$CSESSION_EPOST" != "" ]; then
+#        echo "Current session: $CSESSION"
+#        echo "Logged in as: $CSESSION_EPOST"
+#        echo
+#    else
+#        echo "Not logged in"
+#        echo
+#        CSESSION=""
+#    fi
+#fi
+if [ "$CSESSION_EPOST" = "" ]; then
+    CSESSION=""
 fi
 
 ENDPOINT=$(echo "$REQUEST_URI" | cut -d'/' -f2)
-echo ENDPOINT: $ENDPOINT
 if [ "$ENDPOINT" = "login" ]; then
     if [ "$REQUEST_METHOD" = "POST" ]; then
         BODY=$(head -c $CONTENT_LENGTH)
@@ -54,129 +52,173 @@ if [ "$ENDPOINT" = "login" ]; then
 
         # Skriver ut tom linje for å skille hodet fra kroppen
         echo
-
-        echo REQUEST_URI:    $REQUEST_URI 
-        echo REQUEST_METHOD: $REQUEST_METHOD
-        echo
-
+        echo "<?xml version=\"1.0\"?>"
+        echo "<!DOCTYPE respons SYSTEM \"respons.dtd\">"
+        echo "<respons>"
+        echo -n "<operasjon>Logg inn</operasjon>"
         if [ "$SESSION" != "" ]; then
-            echo Innlogging velykket
-            echo
+            echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
         else
-            echo Innlogging feilet
-            echo Epost: $EPOST
-            echo Passordhash sendt: $PASSORD
-            echo Passordhash riktig: $PASSORDCHECK
-            echo
+            echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
         fi
-
-        # skriver HTTP-kropp (hodet er allerede lest av web-tjeneren)
-        # skriver-hode
-        echo "$BODY"
-        echo
+        echo "</respons>"
     fi
 elif [ "$ENDPOINT" = "logout" ]; then
+    echo "<?xml version=\"1.0\"?>"
+    echo "<!DOCTYPE respons SYSTEM \"respons.dtd\">"
+    echo "<respons>"
+    echo -n "<operasjon>Logg ut</operasjon>"
     if [ "$CSESSION" != "" ]; then
-        echo "DELETE FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB
-        echo "You have been logged out"
+        echo -n "DELETE FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB
+        echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
     else
-        echo "You aren't logged in."
+        echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
     fi
+    echo "</respons>"
 elif [ "$ENDPOINT" = "dikt" ]; then
     if [ "$REQUEST_METHOD" = "GET" ]; then
-        echo $REQUEST_URI skal hentes
-
         ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
         if [ "$ID" = "" ]; then
             QUERY=$(echo "SELECT * FROM Dikt;" | sqlite3 $DB)
-            LINES=$(echo "$QUERY" | wc -l)
-
-            echo -n "<dikt>"
-            for VARIABLE in $(seq 1 $LINES)
-            do
-                LINE=$(echo "$QUERY" | head -$VARIABLE | tail -1)
-                ID=$(echo $LINE | cut -d '|' -f 1)
-                DIKT=$(echo $LINE | cut -d '|' -f 2)
-                EPOST=$(echo $LINE | cut -d '|' -f 3)
-                echo -n "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
-            done
-            echo "</dikt>"
-            ID=""
-        fi
-        if [ "$ID" != "" ]; then
+            if [ "$?" = "1" ]; then
+                echo "<?xml version=\"1.0\"?>"
+                echo "<!DOCTYPE respons SYSTEM \"respons.dtd\">"
+                echo "<respons>"
+                echo "<operasjon>Hent $REQUEST_URI</operasjon>"
+                echo "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+                echo "</respons>"
+            else
+                echo "<?xml version=\"1.0\"?>"
+                echo "<!DOCTYPE dikt_liste SYSTEM \"respons_dikt_liste.dtd\">"
+                LINES=$(echo "$QUERY" | wc -l)
+                echo -n "<dikt>"
+                for VARIABLE in $(seq 1 $LINES)
+                do
+                    LINE=$(echo "$QUERY" | head -$VARIABLE | tail -1)
+                    ID=$(echo $LINE | cut -d '|' -f 1)
+                    DIKT=$(echo $LINE | cut -d '|' -f 2)
+                    EPOST=$(echo $LINE | cut -d '|' -f 3)
+                    echo -n "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
+                done
+                echo -n "</dikt>"
+                ID=""
+            fi
+        else
             QUERY=$(echo "SELECT * FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB )
-            DIKT=$(echo $QUERY | cut -d '|' -f 2)
-            EPOST=$(echo $QUERY | cut -d '|' -f 3)
+            if [ "$QUERY" = "" ]; then
+                echo "<?xml version=\"1.0\"?>"
+                echo "<!DOCTYPE respons SYSTEM \"respons.dtd\">"
+                echo "<respons>"
+                echo "<operasjon>Hent $REQUEST_URI</operasjon>"
+                echo "<tilbakemelding>Finnes ikke</tilbakemelding>"
+                echo "</respons>"
+            else
+                echo "<?xml version=\"1.0\"?>"
+                echo "<!DOCTYPE dikt_entry SYSTEM \"respons_dikt.dtd\">"
+                DIKT=$(echo $QUERY | cut -d '|' -f 2)
+                EPOST=$(echo $QUERY | cut -d '|' -f 3)
 
-            echo "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
+                echo -n "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
+            fi
         fi
     fi
     if [ "$REQUEST_METHOD" = "POST" ]; then
+        echo "<?xml version=\"1.0\"?>"
+        echo "<!DOCTYPE respons SYSTEM \"respons.dtd\">"
+        echo "<respons>"
         if [ "$CSESSION" != "" ]; then
-            echo Følgende skal settes inn i $REQUEST_URI:
-            echo
+            echo -n "<operasjon>Sett inn i $REQUEST_URI</operasjon>"
 
             # skriver HTTP-kropp (hodet er allerede lest av web-tjeneren)
             # skriver-hode
             BODY=$(head -c $CONTENT_LENGTH)
-            echo "$BODY"
-            echo
-
-            ID=$(echo "$BODY" | xmllint --xpath "/dikt/diktID/text()" -)
-            DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
+            DIKT=$(echo "$BODY" | xmllint --xpath "/dikt_entry/dikt/text()" -)
 	    echo "INSERT INTO Dikt (dikt, epostadresse) VALUES (\"$DIKT\", \"$CSESSION_EPOST\");" | sqlite3 $DB
+            if [ "$?" = "0" ]; then
+                echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
+            else
+                echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+            fi
         else
-            echo "Need to be logged in to do this operation"
+            echo -n "<tilbakemelding>FEIL:Må være logget inn</tilbakemelding>"
         fi
+        echo "</respons>"
     fi
     if [ "$REQUEST_METHOD" = "PUT" ]; then
+        echo "<?xml version=\"1.0\"?>"
+        echo "<!DOCTYPE respons SYSTEM \"respons.dtd\">"
+        echo "<respons>"
+        echo -n "<operasjon>Endre $REQUEST_URI</operasjon>"
         if [ "$CSESSION" != "" ]; then
-            echo $REQUEST_URI skal endres slik:
-            echo
-
             # skriver-hode
             BODY=$(head -c $CONTENT_LENGTH)
-            echo "$BODY"
-            echo 
-
             ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
-            echo ID: $ID
             EPOST_OWNER=$(echo "SELECT epostadresse FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB)
             if [ "$EPOST_OWNER" = "$CSESSION_EPOST" ]; then
-                DIKT=$(echo "$BODY" | xmllint --xpath "/dikt/dikt/text()" -)
-                EPOST=$(echo "$BODY" | xmllint --xpath "/dikt/epostadresse/text()" -)
+                DIKT=$(echo "$BODY" | xmllint --xpath "/dikt_entry/dikt/text()" -)
+                EPOST=$(echo "$BODY" | xmllint --xpath "/dikt_entry/epostadresse/text()" -)
                 if [ "$DIKT" != "" ]; then
                     echo "UPDATE Dikt SET dikt=\"$DIKT\" WHERE diktID=$ID;" | sqlite3 $DB
+                    if [ "$?" = "0" ]; then
+                        STATUS1="SET DIKT:GR8 SUCCESS"
+                    else
+                        STATUS1="SET DIKT:UNGR8 SUCCESS"
+                    fi
                 fi
                 if [ "$EPOST" != "" ]; then
                     echo "UPDATE Dikt SET epostadresse=\"$EPOST\" WHERE diktID=$ID;" | sqlite3 $DB
+                    if [ "$?" = "0" ]; then
+                        STATUS2="SET EPOST:GR8 SUCCESS"
+                    else
+                        STATUS2="SET EPOST:UNGR8 SUCCESS"
+                    fi
                 fi
+                echo -n "<tilbakemelding>$STATUS1 | $STATUS2</tilbakemelding>"
             else
-                echo "This poem is not owned by the user that is currently logged in."
+                echo -n "<tilbakemelding>FEIL:Dikt tilhører ikke innlogget bruker</tilbakemelding>"
             fi
         else
-            echo "Need to be logged in to do this operation"
+            echo -n "<tilbakemelding>FEIL:Må være logget inn</tilbakemelding>"
         fi
+        echo "</respons>"
     fi
     if [ "$REQUEST_METHOD" = "DELETE" ]; then
+        echo "<?xml version=\"1.0\"?>"
+        echo "<!DOCTYPE respons SYSTEM \"respons.dtd\">"
+        echo "<respons>"
+        echo -n "<operasjon>Slett $REQUEST_URI</operasjon>"
         if [ "$CSESSION" != "" ]; then
-            echo $REQUEST_URI skal slettes
-
             ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
             if [ "$ID" != "" ]; then
                 EPOST_OWNER=$(echo "SELECT epostadresse FROM Dikt WHERE diktID=\"$ID\";" | sqlite3 $DB)
                 if [ "$EPOST_OWNER" = "$CSESSION_EPOST" ]; then
                     echo "DELETE FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB
+                    if [ "$?" = "0" ]; then
+                        echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
+                    else
+                        echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+                    fi
                 else
-                    echo "This poem is not owned by the user that is currently logged in"
+                    echo -n "<tilbakemelding>FEIL:Dikt tilhører ikke innlogget bruker</tilbakemelding>"
                 fi
             else
                 echo "DELETE FROM Dikt WHERE epostadresse=\"$CSESSION_EPOST\";" | sqlite3 $DB
+                if [ "$?" = "0" ]; then
+                    echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
+                else
+                    echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+                fi
             fi
         else
-            echo "Need to be logged in to do this operation"
+            echo -n "<tilbakemelding>FEIL:Må være logget inn</tilbakemelding>"
         fi
+        echo "<respons>"
     fi
 else
-    echo "This endpoint has undefined operation"
+    echo "<?xml version=\"1.0\"?>"
+    echo "<!DOCTYPE respons SYSTEM \"respons.dtd\">"
+    echo "<respons>"
+    echo "<operasjon>IKKE DEFINERT</operasjon>"
+    echo "<tilbakemelding>FEIL:Finnes ikke noe slikt endepunkt</tilbakemelding>"
+    echo -n "</respons>"
 fi

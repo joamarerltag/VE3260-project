@@ -1,0 +1,5 @@
+<!ELEMENT dikt_liste (dikt_entry)*>
+<!ELEMENT dikt_entry (diktID, dikt, epostadresse)>
+<!ELEMENT diktID (#PCDATA)>
+<!ELEMENT dikt (#PCDATA)>
+<!ELEMENT epostadresse (#PCDATA)>
