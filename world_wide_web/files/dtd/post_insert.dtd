@@ -1,0 +1,2 @@
+<!ELEMENT dikt_entry (dikt)>
+<!ELEMENT dikt (#PCDATA)>

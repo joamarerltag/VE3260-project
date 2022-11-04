@@ -1,0 +1,3 @@
+<!ELEMENT dikt_entry (dikt?, epostadresse?)>
+<!ELEMENT dikt (#PCDATA)>
+<!ELEMENT epostadresse (#PCDATA)>
