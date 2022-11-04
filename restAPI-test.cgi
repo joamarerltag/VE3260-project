@@ -7,7 +7,9 @@ DB="/var/www/data/VE3260-project/db/diktDB.db"
 # Skriver ut 'http-header' for 'plain-text'
 echo "Content-type:text/xml;charset=utf-8"
 
-if [ "$REQUEST_METHOD" != "POST" ] || [ $(echo "$REQUEST_URI" | cut -d'/' -f2) != "login" ]; then
+ENDPOINT=$(echo "$REQUEST_URI" | cut -d'/' -f2)
+
+if [ "$REQUEST_METHOD" != "POST" ] || [ "$ENDPOINT" != "login" ]; then
     # Skriver ut tom linje for å skille hodet fra kroppen
     echo
 else
@@ -17,22 +19,10 @@ fi
 #Attempts to get current session id from cookie
 CSESSION=$(echo "$HTTP_COOKIE" | xargs -d';' | grep sessionId | cut -d'=' -f2)
 CSESSION_EPOST=$(echo "SELECT epostadresse FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB)
-#if [ "$LOGIN_REQUEST" = "" ]; then
-#    if [ "$CSESSION_EPOST" != "" ]; then
-#        echo "Current session: $CSESSION"
-#        echo "Logged in as: $CSESSION_EPOST"
-#        echo
-#    else
-#        echo "Not logged in"
-#        echo
-#        CSESSION=""
-#    fi
-#fi
 if [ "$CSESSION_EPOST" = "" ]; then
     CSESSION=""
 fi
 
-ENDPOINT=$(echo "$REQUEST_URI" | cut -d'/' -f2)
 if [ "$ENDPOINT" = "login" ]; then
     if [ "$REQUEST_METHOD" = "POST" ]; then
         BODY=$(head -c $CONTENT_LENGTH)
@@ -57,9 +47,9 @@ if [ "$ENDPOINT" = "login" ]; then
         echo "<respons>"
         echo -n "<operasjon>Logg inn</operasjon>"
         if [ "$SESSION" != "" ]; then
-            echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
+            echo -n "<tilbakemelding>SUCCESS</tilbakemelding>"
         else
-            echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+            echo -n "<tilbakemelding>FAIL</tilbakemelding>"
         fi
         echo "</respons>"
     fi
@@ -71,9 +61,9 @@ elif [ "$ENDPOINT" = "logout" ]; then
         echo -n "<operasjon>Logg ut</operasjon>"
         if [ "$CSESSION" != "" ]; then
             echo -n "DELETE FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB
-            echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
+            echo -n "<tilbakemelding>SUCCESS</tilbakemelding>"
         else
-            echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+            echo -n "<tilbakemelding>FAIL</tilbakemelding>"
         fi
         echo "</respons>"
     fi
@@ -87,7 +77,7 @@ elif [ "$ENDPOINT" = "dikt" ]; then
                 echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
                 echo "<respons>"
                 echo "<operasjon>Hent $REQUEST_URI</operasjon>"
-                echo "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+                echo "<tilbakemelding>FAIL</tilbakemelding>"
                 echo "</respons>"
             else
                 echo "<?xml version=\"1.0\"?>"
@@ -137,12 +127,12 @@ elif [ "$ENDPOINT" = "dikt" ]; then
             DIKT=$(echo "$BODY" | xmllint --xpath "/dikt_entry/dikt/text()" -)
 	    echo "PRAGMA FOREIGN_KEYS=ON;INSERT INTO Dikt (dikt, epostadresse) VALUES (\"$DIKT\", \"$CSESSION_EPOST\");" | sqlite3 $DB
             if [ "$?" = "0" ]; then
-                echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
+                echo -n "<tilbakemelding>SUCCESS</tilbakemelding>"
             else
-                echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+                echo -n "<tilbakemelding>FAIL</tilbakemelding>"
             fi
         else
-            echo -n "<tilbakemelding>FEIL:Må være logget inn</tilbakemelding>"
+            echo -n "<tilbakemelding>FAIL:Må være logget inn</tilbakemelding>"
         fi
         echo "</respons>"
     fi
@@ -162,25 +152,25 @@ elif [ "$ENDPOINT" = "dikt" ]; then
                 if [ "$DIKT" != "" ]; then
                     echo "UPDATE Dikt SET dikt=\"$DIKT\" WHERE diktID=$ID;" | sqlite3 $DB
                     if [ "$?" = "0" ]; then
-                        STATUS1="SET DIKT:GR8 SUCCESS"
+                        STATUS1="SET DIKT:SUCCESS"
                     else
-                        STATUS1="SET DIKT:UNGR8 SUCCESS"
+                        STATUS1="SET DIKT:FAIL"
                     fi
                 fi
                 if [ "$EPOST" != "" ]; then
                     echo "PRAGMA FOREIGN_KEYS=ON;UPDATE Dikt SET epostadresse=\"$EPOST\" WHERE diktID=$ID;" | sqlite3 $DB
                     if [ "$?" = "0" ]; then
-                        STATUS2="SET EPOST:GR8 SUCCESS"
+                        STATUS2="SET EPOST:SUCCESS"
                     else
-                        STATUS2="SET EPOST:UNGR8 SUCCESS"
+                        STATUS2="SET EPOST:FAIL"
                     fi
                 fi
                 echo -n "<tilbakemelding>$STATUS1 | $STATUS2</tilbakemelding>"
             else
-                echo -n "<tilbakemelding>FEIL:Dikt tilhører ikke innlogget bruker</tilbakemelding>"
+                echo -n "<tilbakemelding>FAIL:Dikt tilhører ikke innlogget bruker</tilbakemelding>"
             fi
         else
-            echo -n "<tilbakemelding>FEIL:Må være logget inn</tilbakemelding>"
+            echo -n "<tilbakemelding>FAIL:Må være logget inn</tilbakemelding>"
         fi
         echo "</respons>"
     fi
@@ -196,23 +186,23 @@ elif [ "$ENDPOINT" = "dikt" ]; then
                 if [ "$EPOST_OWNER" = "$CSESSION_EPOST" ]; then
                     echo "DELETE FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB
                     if [ "$?" = "0" ]; then
-                        echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
+                        echo -n "<tilbakemelding>SUCCESS</tilbakemelding>"
                     else
-                        echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+                        echo -n "<tilbakemelding>FAIL</tilbakemelding>"
                     fi
                 else
-                    echo -n "<tilbakemelding>FEIL:Dikt tilhører ikke innlogget bruker</tilbakemelding>"
+                    echo -n "<tilbakemelding>FAIL:Dikt tilhører ikke innlogget bruker</tilbakemelding>"
                 fi
             else
                 echo "DELETE FROM Dikt WHERE epostadresse=\"$CSESSION_EPOST\";" | sqlite3 $DB
                 if [ "$?" = "0" ]; then
-                    echo -n "<tilbakemelding>GR8 SUCCESS</tilbakemelding>"
+                    echo -n "<tilbakemelding>SUCCESS</tilbakemelding>"
                 else
-                    echo -n "<tilbakemelding>UNGR8 SUCCESS</tilbakemelding>"
+                    echo -n "<tilbakemelding>FAIL</tilbakemelding>"
                 fi
             fi
         else
-            echo -n "<tilbakemelding>FEIL:Må være logget inn</tilbakemelding>"
+            echo -n "<tilbakemelding>FAIL:Må være logget inn</tilbakemelding>"
         fi
         echo "<respons>"
     fi
@@ -221,6 +211,6 @@ else
     echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
     echo "<respons>"
     echo "<operasjon>IKKE DEFINERT</operasjon>"
-    echo "<tilbakemelding>FEIL:Finnes ikke noe slikt endepunkt</tilbakemelding>"
+    echo "<tilbakemelding>FAIL:Finnes ikke noe slikt endepunkt</tilbakemelding>"
     echo -n "</respons>"
 fi
