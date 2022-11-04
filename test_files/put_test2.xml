@@ -1,3 +1,5 @@
-<dikt>
+<?xml version="1.0"?>
+<!DOCTYPE dikt_entry SYSTEM "put.dtd">
+<dikt_entry>
     <epostadresse>ola.nordmann@usn.no</epostadresse>
-</dikt>
+</dikt_entry>
