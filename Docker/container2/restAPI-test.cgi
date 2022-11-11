@@ -2,7 +2,7 @@
 # https://stackoverflow.com/questions/28138997/cgi-script-downloads-instead-of-running
 
 #Global variables
-DB="/var/www/VE3260/db/diktDB.db"
+DB="/usr/local/apache2/VE3260/db/diktDB.db"
 
 # Skriver ut 'http-header' for 'plain-text'
 echo "Content-type:text/xml;charset=utf-8"
@@ -18,7 +18,6 @@ fi
 
 #Attempts to get current session id from cookie
 CSESSION=$(echo "$HTTP_COOKIE" | xargs -d';' | grep sessionId | cut -d'=' -f2)
-echo "$CSESSION"
 CSESSION_EPOST=$(echo "SELECT epostadresse FROM Sesjon WHERE sesjonsID=\"$CSESSION\"" | sqlite3 $DB)
 if [ "$CSESSION_EPOST" = "" ]; then
     CSESSION=""
