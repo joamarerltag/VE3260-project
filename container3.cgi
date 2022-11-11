@@ -138,7 +138,7 @@ if [ "$ENDPOINT" = "/update" ]; then
 		echo "<textarea name=\"dikt\" id=\"dikt\" rows=\"7\" cols=\"50\" placeholder=\"Bacon ipsum\"></textarea>"
 		echo "<input type=\"submit\" value=\"Endre dikt\">"
 		echo "</form>"
-	elif [ "REQUEST_METHOD" = "POST" ]; then
+	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		insert_form_to_xml
 		DIKTID="$(echo \"$REQUEST_BODY\"| sed s/\&/\\n/g | grep diktid | cut -d\"=\" -f2)"
 		curl -X PUT -d "$XML" http://138.68.92.43/dikt/$DIKTID | grep "SUCCESS"
@@ -146,6 +146,43 @@ if [ "$ENDPOINT" = "/update" ]; then
 			echo "<h1>Diktet har nå blitt endret</h1>"
 		else
 			echo "<h1>EN feil oppsto under endring av diktet</h1>"
+		fi
+	fi
+	echo "<a href=\"/\">Tilbake til hovedsiden</a>"
+fi
+
+if [ "$ENDPOINT" = "/delete" ]; then
+	if [ "$REQUEST_METHOD" = "GET" ]; then
+		echo "<form action=\"/deleteall\" method=\"post\">"
+		echo "<label for=\"diktid\">DiktID:</label>"
+		echo "<input name=\"diktid\" id=\"diktid\" type=\"text\" placeholder=\"ID for dikt\">"
+		echo "<input type=\"submit\" value=\"Slett dikt\">"
+		echo "</form>"
+	elif [ "$REQUEST_METHOD" = "POST" ]; then
+		DIKTID="$(echo \"$REQUEST_BODY\"| sed s/\&/\\n/g | grep diktid | cut -d\"=\" -f2)"
+		curl -X DELETE http://138.68.92.43/dikt/$DIKTID | grep "SUCCESS"
+		if [ "$?" = "0" ]; then
+			echo "<h1>Diktet har nå blitt slettet</h1>"
+		else
+			echo "<h1>En feil oppsto under sletting av dikt</h1>"
+		fi
+	fi
+	echo "<a href=\"/\">Tilbake til hovedsiden</a>"
+fi
+
+if [ "$ENDPOINT" = "/deleteall" ]; then
+	if [ "$REQUEST_METHOD" = "GET" ]; then
+		echo "<h1>Ønsker du virkelig å slette alle dikt som tilhører deg?</h1>"
+		echo "<form>"
+		echo "<input type=\"submit\" value=\"Ja\">"
+		echo "<a href=\"/\"><button>Nei</button></a>"
+		echo "</form>"
+	elif ["$REQUEST_METHOD" = "POST" ]; then
+		curl -X DELETE http://138.68.92.43/dikt/ | grep "SUCCESS"
+		if [ "$?" = "0" ]; then
+			echo "<h1>Alle dine dikt har nå blitt slettet</h1>"
+		else
+			echo "<h1>En feil oppsto under sletting av alle dine dikt</h1>"
 		fi
 	fi
 	echo "<a href=\"/\">Tilbake til hovedsiden</a>"
@@ -177,7 +214,7 @@ login_form_to_xml(){
 
 insert_form_to_xml(){
 		#TODO FIX MULTILINE POEMS
-		DIKT="$(echo \"$REQUEST_BODY\"| sed s/\&/\\n/g | grep dikt | cut -d\"=\" -f2)"
+		DIKT="$(echo -ne \"$REQUEST_BODY\" | sed -z 's/\n/\t/g' | sed -z 's/&/\n/g' | grep dikt | sed 's/\t/\n/g' | cut -z -d\"=\" -f2)"
 		XML=""
 		XML="$XML<?xml version=\"1.0\"?>"
 		XML="$XML<!DOCTYPE dikt_entry SYSTEM http://138.68.92.43/files/dtd/post_insert.dtd>"
