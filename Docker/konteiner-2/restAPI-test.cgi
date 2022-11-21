@@ -54,7 +54,7 @@ if [ "$ENDPOINT" = "login" ]; then
         echo "</respons>"
     fi
 elif [ "$ENDPOINT" = "logout" ]; then
-    if [ "REQUEST_METHOD" = "DELETE" ]; then
+    if [ "$REQUEST_METHOD" = "DELETE" ]; then
         echo "<?xml version=\"1.0\"?>"
         echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
         echo "<respons>"
@@ -83,16 +83,16 @@ elif [ "$ENDPOINT" = "dikt" ]; then
                 echo "<?xml version=\"1.0\"?>"
                 echo "<!DOCTYPE dikt_liste SYSTEM \"http://138.68.92.43/files/dtd/respons_dikt_liste.dtd\">"
                 LINES=$(echo "$QUERY" | wc -l)
-                echo -n "<dikt>"
+                echo -n "<dikt_liste>"
                 for VARIABLE in $(seq 1 $LINES)
                 do
                     LINE=$(echo "$QUERY" | head -$VARIABLE | tail -1)
                     ID=$(echo $LINE | cut -d '|' -f 1)
                     DIKT=$(echo $LINE | cut -d '|' -f 2)
                     EPOST=$(echo $LINE | cut -d '|' -f 3)
-                    echo -n "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
+                    echo -n "<dikt_entry><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt_entry>"
                 done
-                echo -n "</dikt>"
+                echo -n "</dikt_liste>"
                 ID=""
             fi
         else
@@ -110,7 +110,7 @@ elif [ "$ENDPOINT" = "dikt" ]; then
                 DIKT=$(echo $QUERY | cut -d '|' -f 2)
                 EPOST=$(echo $QUERY | cut -d '|' -f 3)
 
-                echo -n "<dikt><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt>"
+                echo -n "<dikt_entry><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt_entry>"
             fi
         fi
     fi

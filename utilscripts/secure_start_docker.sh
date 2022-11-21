@@ -12,4 +12,4 @@ do
     fi
 done
 echo $CAPADD
-sudo docker run -p $1:80 -d --cpuset-cpus 0 --cpu-shares 256 --cap-drop ALL $CAPADD $2
+sudo docker run --rm -p $1:80 -d --net mein_netz --ip $3 --cpuset-cpus 0 --cpu-shares 256 --cap-drop ALL $CAPADD $2 

@@ -1,7 +1,7 @@
 FROM httpd:alpine3.16
 
 RUN apk -U upgrade \
-	&& apk add libxml2-utils curl sqlite uuidgen findutils
+	&& apk add libxml2-utils curl sqlite uuidgen findutils coreutils
 
 ENV APACHE_RUN_USER www-data
 ENV APACHE_RUN_GROUP www-data
