@@ -26,7 +26,7 @@ login_form_to_xml(){
 }
 
 insert_form_to_xml(){
-	INPUT=$(echo -ne "$BODY" | sed -z 's/\n/\t/g' | sed -z 's/&/\n/g' | grep dikt | sed 's/\t/\n/g' | cut -z -d"=" -f2)
+	INPUT=$(echo -ne "$BODY" | sed -z 's/\n/\t/g' | sed -z 's/&/\n/g' | grep dikt= | sed 's/\t/\n/g' | cut -z -d"=" -f2)
 	url_decode
 	DIKT="$INPUT"
 	XML=""
@@ -39,6 +39,10 @@ url_decode(){
 	INPUT=$(echo -ne "$INPUT" | sed 's/%0D%0A/\n/g' | sed 's/%0A/\n/g' | sed 's/%0d%0a/\n/g' | sed 's/%0a/\n/g')
 	INPUT=$(echo -ne "$INPUT" | sed 's/+/\ /g')
 	INPUT=$(echo -ne "$INPUT" | sed 's/%40/@/g')
+}
+
+html_encode(){
+	INPUT=$(echo -ne "$INPUT" | sed -z 's/\n/<br\/>/g')
 }
 
 IP="172.4.20.69"
@@ -79,7 +83,7 @@ if [ "$ENDPOINT" = "login" ]; then
 	if [ "$REQUEST_METHOD" = "GET" ]; then
 		echo "<form action=\"/login\" method=\"post\">"
 		echo "<label for=\"epost\">Epostadresse:</label>"
-        echo "<input name=\"epost\" id=\"epost\" type=\"email\" placeholder=\"test@testus.gov\">"
+	        echo "<input name=\"epost\" id=\"epost\" type=\"email\" placeholder=\"test@testus.gov\">"
 
 		echo "<label for=\"passord\">Passord:</label>"
 		echo "<input name=\"passord\" id=\"passord\" type=\"password\" placeholder=\"passord123\">"
@@ -125,12 +129,13 @@ if [ "$ENDPOINT" = "get" ]; then
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		DIKTID="$(echo $BODY | cut -d'=' -f2)"
-		RESPONS=$(curl "http://$IP/dikt/$DIKTID")
-		echo "$RESPONS" | grep "FAIL"
+		RESPONS="$(curl http://$IP/dikt/$DIKTID)"
+		echo "$RESPONS" | grep -q "FAIL"
 		if [ "$?" != "0" ]; then
-			EPOST="$(echo "$RESPONS" | xmllint --xpath '/dikt_entry/epostadresse/text()' - )"
-			DIKT="$(echo "$RESPONS" | xmllint --xpath '/dikt_entry/dikt/text()' - )"
-
+			EPOST=$(echo "$RESPONS" | xmllint --xpath '/dikt_entry/epostadresse/text()' - )
+			INPUT=$(echo "$RESPONS" | xmllint --xpath '/dikt_entry/dikt/text()' - )
+			html_encode
+			DIKT="$INPUT"
 			echo "<h1>Her er diktet :):</h1>"
 			echo "<p>DiktID:$DIKTID</p>"
 			echo "<p>Skrevet av:$EPOST</p>"
@@ -144,7 +149,7 @@ fi
 
 if [ "$ENDPOINT" = "getall" ] && [ "$REQUEST_METHOD" = "GET" ]; then
 	RESPONS="$(curl http://$IP/dikt/)"
-	echo "$RESPONS" | grep "FAIL"
+	echo "$RESPONS" | grep -q "FAIL"
 	if [ "$?" != "0" ]; then
 		DIKT_COUNT=$(echo "$RESPONS" | xmllint --xpath 'count(/dikt_liste//dikt_entry)' -)
 		for i in $(seq 1 $DIKT_COUNT)
@@ -152,7 +157,9 @@ if [ "$ENDPOINT" = "getall" ] && [ "$REQUEST_METHOD" = "GET" ]; then
 			DIKT_ENTRY=$(echo "$RESPONS" | xmllint --xpath "/dikt_liste//dikt_entry[$i]" -)
 			DIKTID=$(echo "$DIKT_ENTRY" | xmllint --xpath '/dikt_entry/diktID/text()' -)
 			EPOST=$(echo "$DIKT_ENTRY" | xmllint --xpath '/dikt_entry/epostadresse/text()' -)
-			DIKT=$(echo "$DIKT_ENTRY" | xmllint --xpath '/dikt_entry/dikt/text()' -)
+			INPUT=$(echo "$DIKT_ENTRY" | xmllint --xpath '/dikt_entry/dikt/text()' -)
+			html_encode
+			DIKT="$INPUT"
 			echo "<p>DiktID:$DIKTID</p>"
 			echo "<p>Skrevet av:$EPOST</p>"
 			echo "<p>$DIKT</p>"
@@ -172,7 +179,7 @@ if [ "$ENDPOINT" = "add" ]; then
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		insert_form_to_xml
-		curl -b "sessionId=$CSESSION" -X POST -d "$XML" http://$IP/dikt | grep SUCCESS
+		curl -b "sessionId=$CSESSION" -X POST -d "$XML" http://$IP/dikt | grep -q SUCCESS
 		if [ "$?" = "0" ]; then
 			echo "<h1>Diktet har nå blitt lagt til</h1>"
 		else
@@ -193,12 +200,12 @@ if [ "$ENDPOINT" = "update" ]; then
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		insert_form_to_xml
-		DIKTID="$(echo \"$BODY\"| sed s/\&/\\n/g | grep diktid | cut -d\"=\" -f2)"
-		curl -b "sessionId=$CSESSION" -X PUT -d "$XML" http://$IP/dikt/$DIKTID | grep "SUCCESS"
+		DIKTID=$(echo "$BODY" | sed s/\&/\\n/g | grep diktid | cut -d"=" -f2)
+		curl -b "sessionId=$CSESSION" -X PUT -d "$XML" http://$IP/dikt/$DIKTID | grep -q "SUCCESS"
 		if [ "$?" = "0" ]; then
 			echo "<h1>Diktet har nå blitt endret</h1>"
 		else
-			echo "<h1>EN feil oppsto under endring av diktet</h1>"
+			echo "<h1>En feil oppsto under endring av diktet</h1>"
 		fi
 	fi
 	echo "<a href=\"/\">Tilbake til hovedsiden</a>"
@@ -206,14 +213,14 @@ fi
 
 if [ "$ENDPOINT" = "delete" ]; then
 	if [ "$REQUEST_METHOD" = "GET" ]; then
-		echo "<form action=\"/deleteall\" method=\"post\">"
+		echo "<form action=\"/delete\" method=\"post\">"
 		echo "<label for=\"diktid\">DiktID:</label>"
 		echo "<input name=\"diktid\" id=\"diktid\" type=\"text\" placeholder=\"ID for dikt\">"
 		echo "<input type=\"submit\" value=\"Slett dikt\">"
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
-		DIKTID="$(echo \"$BODY\"| sed s/\&/\\n/g | grep diktid | cut -d\"=\" -f2)"
-		curl -b "sessionId=$CSESSION" -X DELETE http://$IP/dikt/$DIKTID | grep "SUCCESS"
+		DIKTID=$(echo "$BODY"| sed s/\&/\\n/g | grep diktid | cut -d"=" -f2)
+		curl -b "sessionId=$CSESSION" -X DELETE http://$IP/dikt/$DIKTID | grep -q "SUCCESS"
 		if [ "$?" = "0" ]; then
 			echo "<h1>Diktet har nå blitt slettet</h1>"
 		else
@@ -226,12 +233,12 @@ fi
 if [ "$ENDPOINT" = "deleteall" ]; then
 	if [ "$REQUEST_METHOD" = "GET" ]; then
 		echo "<h1>Ønsker du virkelig å slette alle dikt som tilhører deg?</h1>"
-		echo "<form>"
+		echo "<form action=\"deleteall\" method=\"post\">"
 		echo "<input type=\"submit\" value=\"Ja\">"
-		echo "<a href=\"/\"><button>Nei</button></a>"
+		echo "<input type=\"submit\" value=\"Nei\" formaction=\"/\">"
 		echo "</form>"
-	elif ["$REQUEST_METHOD" = "POST" ]; then
-		curl -b "sessionId=$CSESSION" -X DELETE http://$IP/dikt/ | grep "SUCCESS"
+	elif [ "$REQUEST_METHOD" = "POST" ]; then
+		curl -b "sessionId=$CSESSION" -X DELETE http://$IP/dikt/ | grep -q "SUCCESS"
 		if [ "$?" = "0" ]; then
 			echo "<h1>Alle dine dikt har nå blitt slettet</h1>"
 		else

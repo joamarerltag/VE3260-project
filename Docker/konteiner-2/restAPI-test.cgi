@@ -71,7 +71,7 @@ elif [ "$ENDPOINT" = "dikt" ]; then
     if [ "$REQUEST_METHOD" = "GET" ]; then
         ID=$(echo $REQUEST_URI | cut -d '/' -f 3)
         if [ "$ID" = "" ]; then
-            QUERY=$(echo "SELECT * FROM Dikt;" | sqlite3 $DB)
+            QUERY=$(echo "SELECT diktid FROM Dikt;" | sqlite3 $DB)
             if [ "$?" = "1" ]; then
                 echo "<?xml version=\"1.0\"?>"
                 echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
@@ -86,10 +86,10 @@ elif [ "$ENDPOINT" = "dikt" ]; then
                 echo -n "<dikt_liste>"
                 for VARIABLE in $(seq 1 $LINES)
                 do
-                    LINE=$(echo "$QUERY" | head -$VARIABLE | tail -1)
-                    ID=$(echo $LINE | cut -d '|' -f 1)
-                    DIKT=$(echo $LINE | cut -d '|' -f 2)
-                    EPOST=$(echo $LINE | cut -d '|' -f 3)
+                    ID=$(echo "$QUERY" | head -$VARIABLE | tail -1)
+                    LINE=$(echo "SELECT * FROM Dikt WHERE diktid=$ID;" | sqlite3 $DB)
+                    DIKT=$(echo "$LINE" | cut -z -d '|' -f 2)
+                    EPOST=$(echo "$LINE" | cut -z -d '|' -f 3)
                     echo -n "<dikt_entry><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt_entry>"
                 done
                 echo -n "</dikt_liste>"
@@ -107,8 +107,8 @@ elif [ "$ENDPOINT" = "dikt" ]; then
             else
                 echo "<?xml version=\"1.0\"?>"
                 echo "<!DOCTYPE dikt_entry SYSTEM \"http://138.68.92.43/files/dtd/respons_dikt.dtd\">"
-                DIKT=$(echo $QUERY | cut -d '|' -f 2)
-                EPOST=$(echo $QUERY | cut -d '|' -f 3)
+                DIKT=$(echo "$QUERY" | cut -z -d '|' -f 2)
+                EPOST=$(echo "$QUERY" | cut -z -d '|' -f 3)
 
                 echo -n "<dikt_entry><diktID>$ID</diktID><dikt>$DIKT</dikt><epostadresse>$EPOST</epostadresse></dikt_entry>"
             fi
