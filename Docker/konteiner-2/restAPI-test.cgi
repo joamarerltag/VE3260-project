@@ -43,7 +43,7 @@ if [ "$ENDPOINT" = "login" ]; then
         # Skriver ut tom linje for å skille hodet fra kroppen
         echo
         echo "<?xml version=\"1.0\"?>"
-        echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
+        echo "<!DOCTYPE respons PUBLIC \"G13 Respons\" \"http://138.68.92.43/files/dtd/respons.dtd\">"
         echo "<respons>"
         echo -n "<operasjon>Logg inn</operasjon>"
         if [ "$SESSION" != "" ]; then
@@ -56,7 +56,7 @@ if [ "$ENDPOINT" = "login" ]; then
 elif [ "$ENDPOINT" = "logout" ]; then
     if [ "$REQUEST_METHOD" = "DELETE" ]; then
         echo "<?xml version=\"1.0\"?>"
-        echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
+        echo "<!DOCTYPE respons PUBLIC \"G13 Respons\" \"http://138.68.92.43/files/dtd/respons.dtd\">"
         echo "<respons>"
         echo -n "<operasjon>Logg ut</operasjon>"
         if [ "$CSESSION" != "" ]; then
@@ -74,14 +74,14 @@ elif [ "$ENDPOINT" = "dikt" ]; then
             QUERY=$(echo "SELECT diktid FROM Dikt;" | sqlite3 $DB)
             if [ "$?" = "1" ]; then
                 echo "<?xml version=\"1.0\"?>"
-                echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
+                echo "<!DOCTYPE respons PUBLIC \"G13 Respons\" \"http://138.68.92.43/files/dtd/respons.dtd\">"
                 echo "<respons>"
                 echo "<operasjon>Hent $REQUEST_URI</operasjon>"
                 echo "<tilbakemelding>FAIL</tilbakemelding>"
                 echo "</respons>"
             else
                 echo "<?xml version=\"1.0\"?>"
-                echo "<!DOCTYPE dikt_liste SYSTEM \"http://138.68.92.43/files/dtd/respons_dikt_liste.dtd\">"
+                echo "<!DOCTYPE dikt_liste PUBLIC \"G13 Dikt Liste\" \"http://138.68.92.43/files/dtd/respons_dikt_liste.dtd\">"
                 LINES=$(echo "$QUERY" | wc -l)
                 echo -n "<dikt_liste>"
                 for VARIABLE in $(seq 1 $LINES)
@@ -99,14 +99,14 @@ elif [ "$ENDPOINT" = "dikt" ]; then
             QUERY=$(echo "SELECT * FROM Dikt WHERE diktID=$ID;" | sqlite3 $DB )
             if [ "$QUERY" = "" ]; then
                 echo "<?xml version=\"1.0\"?>"
-                echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
+                echo "<!DOCTYPE respons PUBLIC \"G13 Respons\" \"http://138.68.92.43/files/dtd/respons.dtd\">"
                 echo "<respons>"
                 echo "<operasjon>Hent $REQUEST_URI</operasjon>"
                 echo "<tilbakemelding>Finnes ikke</tilbakemelding>"
                 echo "</respons>"
             else
                 echo "<?xml version=\"1.0\"?>"
-                echo "<!DOCTYPE dikt_entry SYSTEM \"http://138.68.92.43/files/dtd/respons_dikt.dtd\">"
+                echo "<!DOCTYPE dikt_entry PUBLIC \"G13 Dikt\" \"http://138.68.92.43/files/dtd/respons_dikt.dtd\">"
                 DIKT=$(echo "$QUERY" | cut -z -d '|' -f 2)
                 EPOST=$(echo "$QUERY" | cut -z -d '|' -f 3)
 
@@ -116,7 +116,7 @@ elif [ "$ENDPOINT" = "dikt" ]; then
     fi
     if [ "$REQUEST_METHOD" = "POST" ]; then
         echo "<?xml version=\"1.0\"?>"
-        echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
+        echo "<!DOCTYPE respons PUBLIC \"G13 Respons\" \"http://138.68.92.43/files/dtd/respons.dtd\">"
         echo "<respons>"
         if [ "$CSESSION" != "" ]; then
             echo -n "<operasjon>Sett inn i $REQUEST_URI</operasjon>"
@@ -138,7 +138,7 @@ elif [ "$ENDPOINT" = "dikt" ]; then
     fi
     if [ "$REQUEST_METHOD" = "PUT" ]; then
         echo "<?xml version=\"1.0\"?>"
-        echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
+        echo "<!DOCTYPE respons PUBLIC \"G13 Respons\" \"http://138.68.92.43/files/dtd/respons.dtd\">"
         echo "<respons>"
         echo -n "<operasjon>Endre $REQUEST_URI</operasjon>"
         if [ "$CSESSION" != "" ]; then
@@ -176,7 +176,7 @@ elif [ "$ENDPOINT" = "dikt" ]; then
     fi
     if [ "$REQUEST_METHOD" = "DELETE" ]; then
         echo "<?xml version=\"1.0\"?>"
-        echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
+        echo "<!DOCTYPE respons PUBLIC \"G13 Respons\" \"http://138.68.92.43/files/dtd/respons.dtd\">"
         echo "<respons>"
         echo -n "<operasjon>Slett $REQUEST_URI</operasjon>"
         if [ "$CSESSION" != "" ]; then
@@ -208,7 +208,7 @@ elif [ "$ENDPOINT" = "dikt" ]; then
     fi
 else
     echo "<?xml version=\"1.0\"?>"
-    echo "<!DOCTYPE respons SYSTEM \"http://138.68.92.43/files/dtd/respons.dtd\">"
+    echo "<!DOCTYPE respons PUBLIC \"G13 Respons\" \"http://138.68.92.43/files/dtd/respons.dtd\">"
     echo "<respons>"
     echo "<operasjon>IKKE DEFINERT</operasjon>"
     echo "<tilbakemelding>FAIL:Finnes ikke noe slikt endepunkt</tilbakemelding>"

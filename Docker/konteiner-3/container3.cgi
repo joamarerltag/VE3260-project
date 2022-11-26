@@ -3,6 +3,9 @@
 start_html(){
 	echo "<!DOCTYPE html>"
 	echo "<html>"
+        echo "<head>"
+	echo "<link rel=\"stylesheet\" href=\"http://138.68.92.43/files/css/interface.css\">"
+        echo "</head>"
 	echo "<body>"
 }
 
@@ -18,7 +21,7 @@ login_form_to_xml(){
 	PASSORD=$(echo "$BODY" | sed s/\&/\\n/g | grep passord | cut -d'=' -f2)
 	XML=""
 	XML="$XML<?xml version=\"1.0\"?>"
-	XML="$XML<!DOCTYPE bruker SYSTEM \"http://$IP/files/dtd/post_login.dtd\">"
+	XML="$XML<!DOCTYPE bruker PUBLIC \"G13 Login\" \"http://$IP/files/dtd/post_login.dtd\">"
 	XML="$XML<bruker>"
 	XML="$XML<epostadresse>$EPOST</epostadresse>"
 	XML="$XML<passord>$PASSORD</passord>"
@@ -31,7 +34,7 @@ insert_form_to_xml(){
 	DIKT="$INPUT"
 	XML=""
 	XML="$XML<?xml version=\"1.0\"?>"
-	XML="$XML<!DOCTYPE dikt_entry SYSTEM \"http://$IP/files/dtd/post_insert.dtd\">"
+	XML="$XML<!DOCTYPE dikt_entry PUBLIC \"G13 Insert\" \"http://$IP/files/dtd/post_insert.dtd\">"
 	XML="$XML<dikt_entry><dikt>$DIKT</dikt></dikt_entry>"
 }
 
@@ -77,18 +80,19 @@ if [ "$ENDPOINT" = "" ]; then
 	fi
 	echo "<a href=\"/get\">Hent et bestemt dikt(krever at du vet diktID-en)</a>"
 	echo "<a href=\"/getall\">Hent alle dikt</a>"
+        echo "<a href=\"http://138.68.92.43/files/index.html\">Til G13 hjemmeside :)</a>"
 fi
 
 if [ "$ENDPOINT" = "login" ]; then
 	if [ "$REQUEST_METHOD" = "GET" ]; then
 		echo "<form action=\"/login\" method=\"post\">"
-		echo "<label for=\"epost\">Epostadresse:</label>"
-	        echo "<input name=\"epost\" id=\"epost\" type=\"email\" placeholder=\"test@testus.gov\">"
+		echo "<div><label for=\"epost\">Epostadresse:</label></div>"
+	        echo "<div><input name=\"epost\" id=\"epost\" type=\"email\" placeholder=\"test@testus.gov\"></div>"
 
-		echo "<label for=\"passord\">Passord:</label>"
-		echo "<input name=\"passord\" id=\"passord\" type=\"password\" placeholder=\"passord123\">"
+		echo "<div><label for=\"passord\">Passord:</label></div>"
+		echo "<div><input name=\"passord\" id=\"passord\" type=\"password\" placeholder=\"passord123\"></div>"
 
-		echo "<input type=\"submit\" value=\"Logg inn\">"
+		echo "<div><input type=\"submit\" value=\"Logg inn\"></div>"
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		login_form_to_xml
@@ -123,9 +127,9 @@ fi
 if [ "$ENDPOINT" = "get" ]; then
 	if [ "$REQUEST_METHOD" = "GET" ]; then
 		echo "<form action=\"/get\" method=\"post\">"
-		echo "<label for=\"diktid\">DiktID:</label>"
-		echo "<input name=\"diktid\" id=\"diktid\">"
-		echo "<input type=\"submit\" value=\"Hent dikt\">"
+		echo "<div><label for=\"diktid\">DiktID:</label></div>"
+		echo "<div><input name=\"diktid\" id=\"diktid\"></div>"
+		echo "<div><input type=\"submit\" value=\"Hent dikt\"></div>"
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		DIKTID="$(echo $BODY | cut -d'=' -f2)"
@@ -173,9 +177,9 @@ fi
 if [ "$ENDPOINT" = "add" ]; then
 	if [ "$REQUEST_METHOD" = "GET" ]; then
 		echo "<form action=\"/add\" method=\"post\">"
-		echo "<label for=\"dikt\">Dikt</label>"
-		echo "<textarea name=\"dikt\" id=\"dikt\" rows=\"7\" cols=\"50\" placeholder=\"Bacon ipsum\"></textarea>"
-		echo "<input type=\"submit\" value=\"Legg til dikt\">"
+		echo "<div><label for=\"dikt\">Dikt</label></div>"
+		echo "<div><textarea name=\"dikt\" id=\"dikt\" rows=\"7\" cols=\"50\" placeholder=\"Bacon ipsum\"></textarea></div>"
+		echo "<div><input type=\"submit\" value=\"Legg til dikt\"><div>"
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		insert_form_to_xml
@@ -192,11 +196,11 @@ fi
 if [ "$ENDPOINT" = "update" ]; then
 	if [ "$REQUEST_METHOD" = "GET" ]; then
 		echo "<form action=\"/update\" method=\"post\">"
-		echo "<label for=\"diktid\">DiktID:</label>"
-		echo "<input name=\"diktid\" id=\"diktid\" type=\"text\" placeholder=\"ID for dikt\">"
-		echo "<label for=\"dikt\">Dikt</label>"
-		echo "<textarea name=\"dikt\" id=\"dikt\" rows=\"7\" cols=\"50\" placeholder=\"Bacon ipsum\"></textarea>"
-		echo "<input type=\"submit\" value=\"Endre dikt\">"
+		echo "<div><label for=\"diktid\">DiktID:</label></div>"
+		echo "<div><input name=\"diktid\" id=\"diktid\" type=\"text\" placeholder=\"ID for dikt\"></div>"
+		echo "<div><label for=\"dikt\">Dikt</label></dikt>"
+		echo "<div><textarea name=\"dikt\" id=\"dikt\" rows=\"7\" cols=\"50\" placeholder=\"Bacon ipsum\"></textarea></div>"
+		echo "<div><input type=\"submit\" value=\"Endre dikt\"></div>"
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		insert_form_to_xml
@@ -214,9 +218,9 @@ fi
 if [ "$ENDPOINT" = "delete" ]; then
 	if [ "$REQUEST_METHOD" = "GET" ]; then
 		echo "<form action=\"/delete\" method=\"post\">"
-		echo "<label for=\"diktid\">DiktID:</label>"
-		echo "<input name=\"diktid\" id=\"diktid\" type=\"text\" placeholder=\"ID for dikt\">"
-		echo "<input type=\"submit\" value=\"Slett dikt\">"
+		echo "<div><label for=\"diktid\">DiktID:</label></div>"
+		echo "<div><input name=\"diktid\" id=\"diktid\" type=\"text\" placeholder=\"ID for dikt\"></div>"
+		echo "<div><input type=\"submit\" value=\"Slett dikt\"></div>"
 		echo "</form>"
 	elif [ "$REQUEST_METHOD" = "POST" ]; then
 		DIKTID=$(echo "$BODY"| sed s/\&/\\n/g | grep diktid | cut -d"=" -f2)
