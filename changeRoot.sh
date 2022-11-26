@@ -8,7 +8,7 @@ if [ ! -d $ROTFS ];then
     cd ..
     cd ..
     cp /etc/mime.types $ROTFS/etc/
-    cp -r $PWD/world_wide_web/files $ROTFS/var/www/
+    cp -r $PWD/world_wide_web/* $ROTFS/var/www/
     cp $PWD/myServer_static $ROTFS/bin/myServer
     echo "::once:/bin/myServer" >  $ROTFS/etc/inittab
  

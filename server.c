@@ -50,8 +50,11 @@ int main()
         dup2(errorFd, 2);
         fclose(errorLog);
 
+	fprintf(stderr,"Start memory read");
+	fflush(stderr);
         readMimeIntoMemory(&l_head);
-
+	fprintf(stderr,"End memory read");
+	fflush(stderr);
         // Deaemonize
         if (fork() != 0) {
             exit(0);
@@ -170,6 +173,10 @@ bool readMimeIntoMemory(struct MimeEntry** l_head) {
 
     // aapner mimetype-fila
     FILE* mimeFile = fopen("/etc/mime.types", "r");
+    if(mimeFile == NULL){
+        fprintf(stderr,"Can't open file /etc/mime.types");
+        fflush(stderr);
+    }
 
     while (0 < (count = getline(&buffer, &getLineBufSize, mimeFile))) {
 
