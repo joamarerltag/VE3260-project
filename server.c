@@ -237,6 +237,7 @@ bool sendFileContent(int ny_sd, char* filePath, char* buffer, char* contentType)
         printf("HTTP/1.1 200 OK\n");
         printf("Content-Type: %s\n", contentType);
         printf("Content-Length: %ld\n", statbuf.st_size);
+        printf("Access-Control-Allow-Origin: http://138.68.92.43\n");
         printf("\n");
 
         fflush(stdout);

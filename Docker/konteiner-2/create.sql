@@ -26,6 +26,8 @@ VALUES ("test@testus.gov","9c690591b6da6fd241f2773127ce967f","Hans","Gebroikenla
 INSERT INTO Dikt (dikt, epostadresse)
 VALUES ("Dikt på svikt er lit", "test@testus.gov");
 INSERT INTO Dikt (dikt, epostadresse)
-VALUES ("Av med klaerna, på med jerna, opp i reva, skinner stjerna ", "test@testus.gov");
+VALUES ("You led me in your bed, but now I sleep alone, trapped with the forgotten, in my detritus home. I hope you're happy now, I hope it every day, in case you didn't figure it out yet, I'm the doll you threw away", "test@testus.gov");
 INSERT INTO Dikt (dikt, epostadresse)
-VALUES ("Stjernen til Joakim skinner i natt", "test@testus.gov");
+VALUES ("Fool me once, strike one, but fool me twice, strike three", "test@testus.gov");
+INSERT INTO Dikt (dikt, epostadresse)
+VALUES ("I love inside jokes, I hope to be a part of one someday", "test@testus.gov");

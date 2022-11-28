@@ -204,7 +204,7 @@ elif [ "$ENDPOINT" = "dikt" ]; then
         else
             echo -n "<tilbakemelding>FAIL:Må være logget inn</tilbakemelding>"
         fi
-        echo "<respons>"
+        echo "</respons>"
     fi
 else
     echo "<?xml version=\"1.0\"?>"
