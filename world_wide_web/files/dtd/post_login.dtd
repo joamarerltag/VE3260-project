@@ -1,0 +1,3 @@
+<!ELEMENT bruker (epostadresse, passord)>
+<!ELEMENT epostadresse (#PCDATA)>
+<!ELEMENT passord (#PCDATA)>
